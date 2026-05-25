@@ -76,7 +76,7 @@ function MainPage() {
     <>
         <div className='boxmain'>
             <Sidebar />
-            <div style={{width:'130vh'}}>
+            <div style={{width:'auto'}}>
                 <div className='headertext'>
                     <h1 style={{color:'white'}}>จองนัดหมาย</h1>
                     <p style={{color:'white'}}>เลือกแพทย์ วัน-เวลา และกรอกข้อมูลเพื่อจองคิว</p>
@@ -93,7 +93,8 @@ function MainPage() {
                                             background: selectedId === doctor.id ? '#1e9670' : 'transparent',
                                             border: '1px solid #929292',
                                             cursor: 'pointer',
-                                            borderRadius: '8px'
+                                            borderRadius: '8px',
+                                            
                                         }}
                                         onClick={() => setSelectedId(doctor.id)}
                                         >

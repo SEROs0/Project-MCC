@@ -8,6 +8,7 @@ export const doctors = [
   { id: 1, name: 'นพ. สมชาย', dept: 'อายุรกรรม', available: 5 },
   { id: 2, name: 'พญ. สุดา',  dept: 'กุมารเวช',  available: 3 },
   { id: 3, name: 'นพ. วิชัย', dept: 'ออร์โธปิดิกส์', available: 0 },
+  { id: 4, name: 'นพ. สมปอง', dept: 'ออร์โธปิดิกส์', available: 1 }
 ]
 
 export const notifications = [
