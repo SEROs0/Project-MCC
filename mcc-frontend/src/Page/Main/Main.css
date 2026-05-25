@@ -1,0 +1,132 @@
+*{
+    padding: 0;
+    margin: 0;
+    border: 0;
+    box-sizing: border-box;
+    color: white;
+}
+
+.boxlogo{
+    display: flex;
+}
+
+.sidebar {
+    height: 100vh;
+    width: 250px;
+    background-color: rgb(65, 65, 65);
+    display:flex;
+    flex-direction: column;
+    padding: 15px;
+    gap:15px
+} 
+
+button {
+    background-color: transparent;
+    padding: 10px;
+    text-align: left;
+
+}
+
+.box {
+    color: #ffffff;
+    display: flex;
+}
+
+.boxmain {
+    display: flex;
+    background-color: rgb(27, 27, 27);
+    min-height: 100vh;
+    width: 100vw;
+}
+
+.book_an_appointment {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 0 0 20px ;
+    align-items: start; 
+}
+
+.choose_doctor_and_choose_time {
+    display: grid;
+    width: auto;
+    height: auto;
+     height: fit-content;
+}
+
+.card {
+    background-color: rgb(65, 65, 65);
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 8px;
+    height: auto;
+}
+
+.card_patient {
+    background-color: rgb(65, 65, 65);
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 8px;
+    height: auto;
+}
+
+.doctor_card {
+    display: flex;
+}
+
+.card_time {
+    display: flex;
+}
+
+.time-picker-header {
+    display: flex;
+    justify-content: space-between; /* ดันซ้าย-ขวาออกจากกัน */
+    align-items: center;            /* จัดให้อยู่กึ่งกลางแนวตั้งตรงกัน */
+    width: 100%;                    /* บังคับให้ขยายเต็มพื้นที่ฝั่งขวา */
+    /* padding: 10px 20px;             (แถม) เว้นระยะห่างจากขอบกล่องด้านนอกนิดหน่อยให้สวยงาม */
+}
+
+.time-picker-header {
+    color: white;                   /* คุมสีตัวอักษรของทั้งคู่เป็นสีขาว */
+}
+
+.time-slot {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin-top: 15px;
+    align-items: center;
+
+}
+
+.time {
+    align-items: center;
+}
+
+.text{
+    font-size: 11px;
+    display: flex;
+    padding: 10px;
+    gap: 10px;
+    align-items: center;
+     justify-content: space-between;
+}
+
+.input-detail {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.headertext {
+    margin: 20px 0 0 20px;
+}
+
+.boxselecttimeanddoctor {
+    display: flex;
+    align-items: center;
+}
+
+.button_sidebar_menu {
+    display: grid;
+}
