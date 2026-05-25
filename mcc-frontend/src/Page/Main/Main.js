@@ -1,13 +1,26 @@
 import './Main.css';
+import App from '../App.js'
 import { Calendar, LayoutDashboard, ClipboardList, Bell, User, Heart, AlignCenter } from 'lucide-react';
-import {doctors, patients, notifications,timeSlots } from '../Mock/data.js'
+import {doctors, patients, notifications,timeSlots } from '../../Mock/data.js'
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Sidebar from '../sidebar.js'
 
 function MainPage() {
     
     const [doctorList, setDoctorList] = useState(doctors)
     const [selectedId, setSelectedId] = useState(null)
     const [selectedTime, setSelectedTime] = useState(null)
+    const [showModal, setShowModal] = useState(false)
+    const [bookingData, setBookingData] = useState(null)
+    const today = new Date()
+
+    const dateText = today.toLocaleDateString('th-TH',{
+        weekday: 'long',   
+        day:     'numeric', 
+        month:   'long',   
+        year:    'numeric' 
+    })
     
     const [form, setForm] = useState({
         name:     '',
@@ -41,6 +54,12 @@ function MainPage() {
         return
     }
 
+    setBookingData({                              // ← เก็บลง state
+        doctor: doctorList.find(d => d.id === selectedId).name,
+        time:   selectedTime,
+        patient: form,
+    })
+
     // รวมข้อมูลทั้งหมด
     const bookingData = {
         doctor:    doctorList.find(d => d.id === selectedId).name,
@@ -48,34 +67,15 @@ function MainPage() {
         patient:   form,
     }
 
-    console.log('ข้อมูลการจอง:',bookingData + form) // ← ดูใน Console ได้เลย
-    alert(`จองสำเร็จ!\nแพทย์: ${bookingData.doctor}\nเวลา: ${bookingData.time}`)
+    console.log('ข้อมูลแพทย์:', bookingData) // ← ดูใน Console ได้เลย
+    console.log('ข้อมูลผู้ป่วย:',form)
+    setShowModal(true)
 }
 
     return (
+    <>
         <div className='boxmain'>
-            <div className='sidebar'>
-                <div className='boxlogo'>
-                    <Heart size={50} color='white' style={{marginTop:'27px',backgroundColor:'#00FF99',padding:'7px'}}/>
-                    <h1 style={{color: 'white',padding:'10px'}}>MedCare Clinic</h1>
-                </div>
-                    {/* <div  className='sidebar'> */}
-                
-                            <button>
-                                <i className='ti ti-calendar-plus'></i>
-                                    จองคิว
-                            </button>
-                       
-                            <button>Dashboard</button>
-                       
-                            <button>ประวัติผู้ป่วย</button>
-                        
-                            <button>แจ้งเตือน</button>
-                        
-                            <button>User</button>
-                   
-                    {/* </div> */}
-            </div>
+            <Sidebar />
             <div style={{width:'130vh'}}>
                 <div className='headertext'>
                     <h1 style={{color:'white'}}>จองนัดหมาย</h1>
@@ -85,12 +85,13 @@ function MainPage() {
                     <div className='choose_doctor_and_choose_time'>
                         <div className='card'>
                             <p style={{color:'white'}}>เลือกแพทย์</p>
-                            <div id='doctors' className='doctor_card'>
+                            <div id='doctors' className='doctor_card' style={{gap:'10px', paddingTop:'10px'}}>
                                 {doctorList.map(doctor => (
                                     <div key={doctor.id} 
                                         style={{
                                             padding:'10px',
                                             background: selectedId === doctor.id ? '#1e9670' : 'transparent',
+                                            border: '1px solid #929292',
                                             cursor: 'pointer',
                                             borderRadius: '8px'
                                         }}
@@ -99,7 +100,7 @@ function MainPage() {
                                         {doctor.name} <br/>
                                         {doctor.dept} <br/>
                                         <p style={{
-                                            color: doctor.available > 0 ? '#33f8ba' : '#FF0000'
+                                            color: doctor.available > 0 ? '#33f8ba' : '#FF0000',fontSize:'14px'
                                         }}>ว่าง {doctor.available} คิว</p>
                                     </div>
                                 ))}
@@ -109,7 +110,7 @@ function MainPage() {
                         <div className='card'>
                             <div className="time-picker-header">
                                 <p>เลือกเวลา</p> 
-                                <p className="date-text">วันศุกร์ที่ 22 พ.ค. 2026</p>
+                                <p className="date-text" style={{}}>{dateText}</p>
                             </div>
                                 {/* แทนที่ div time-slot เดิม */}
                                 <div className='time-slot'>
@@ -126,7 +127,7 @@ function MainPage() {
                                                 cursor: slot.available ? 'pointer' : 'not-allowed',
                                                 border: selectedTime === slot.time
                                                     ? '2px solid #1D9E75'          // ← เลือกอยู่ = กรอบเขียว
-                                                    : '1px solid transparent',
+                                                    : '1px solid #ffffffcc',
                                                 background: !slot.available
                                                     ? 'rgb(100,100,100)'            // ← ไม่ว่าง = สีทึบ
                                                     : selectedTime === slot.time
@@ -140,9 +141,18 @@ function MainPage() {
                                     ))}
                                 </div>
                                 <div className='text'>
-                                    <p>ปุ่มมีสีเขียว = เลือกเวลานัด</p>
-                                    <p>ปุ่มทึบ = ไม่ว่าง</p>
-                                    <p>ปุ่มไม่มีสี = ว่าง</p>
+                                    <p style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            width: '10px',
+                                            height: '10px',
+                                            backgroundColor: '#25be8e', // สีเขียว สามารถเปลี่ยนรหัสสีได้ตามต้องการ
+                                            borderRadius: '50%'
+                                        }}></span>
+                                        ปุ่มเวลาขึ้นสีเขียว = เลือกเวลานัด
+                                    </p>
+                                    {/* <p>ปุ่มทึบ = ไม่ว่าง</p>
+                                    <p>ปุ่มไม่มีสี = ว่าง</p> */}
                                 </div>
                         </div>
                     </div>
@@ -151,22 +161,27 @@ function MainPage() {
 
                         {/* Row 1: ชื่อ + โทรศัพท์ */}
                         <div className='input-detail'>
-                            <div>
+                            <div style={{padding:'5px'}}>
                                 <label>ชื่อ-นามสกุล</label><br/>
                                 <input
+                                    type="text"
                                     value={form.name}
-                                    onChange={e => handleChange('name', e.target.value)}
-                                    placeholder='กรอกชื่อ-นามสกุล'
-                                    style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' }}
-                                />
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/[^ก-๙a-zA-Z\s]/g, '') // รับแค่ภาษาไทย อังกฤษ และเว้นวรรค
+                                        if (val.length <= 50) handleChange('name', val)
+                                    }}
+                                    placeholder="กรอกชื่อ-นามสกุล"
+                                    style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background: 'transparent' }}
+                                    />
                             </div>
-                            <div>
+                            <div style={{padding:'5px'}}>
                                 <label>หมายเลขโทรศัพท์</label><br/>
                                 <input
                                     type='number'
-                                    maxLength={10}
                                     value={form.phone}
-                                    onChange={e => handleChange('phone', e.target.value)}
+                                    onChange={e => 
+                                        {if (e.target.value.length <= 10) 
+                                            handleChange('phone', e.target.value)}}
                                     placeholder='08x-xxx-xxxx'
                                     style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' }}
                                 />
@@ -174,36 +189,50 @@ function MainPage() {
                         </div>
 
                         {/* Row 2: อายุ + เพศ */}
-                        <div className='input-detail'>
-                            <div>
+                        <div className='input-detail' >
+                            <div style={{padding:'5px'}}>
                                 <label>อายุ</label><br/>
-                                <input
+                                {/* <input
                                     type='number'
-                                    maxLength={3}
+                                    value={form.age}
+                                    onChange={e => {if (e.target.value.length <=3) {
+                                        handleChange('age', e.target.value)}}
+                                    }
+                                        
+                                    placeholder='อายุ'
+                                    style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' ,width:'100px'}}
+                                /> */}
+                                <select
                                     value={form.age}
                                     onChange={e => handleChange('age', e.target.value)}
-                                    placeholder='อายุ'
-                                    style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' }}
-                                />
+                                    style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', background: 'transparent' ,width:'110px'}}
+                                    >
+                                    <option value="" style={{background:'#252525'}}>-- เลือกอายุ --</option>
+                                    {Array.from({ length: 100 }, (_, i) => i + 1).map(age => (
+                                    <option key={age} value={age} style={{ background: '#2a2a2a', color: 'white' }}>{age} ปี</option>
+                                    ))}
+                                </select>
+
                             </div>
-                            <div>
+                            <div style={{padding:'5px'}}>
                                 <label>เพศ</label><br/>
                                 {/* select = dropdown */}
                                 <select
                                     value={form.sex}
                                     onChange={e => handleChange('sex', e.target.value)}
-                                    style={{ background: 'rgb(65,65,65)', padding: '6px', borderRadius: '6px', width: '100%', border: '1px solid #ccc' }}
+                                    style={{ background: 'rgb(65,65,65)', padding: '8px', borderRadius: '6px', width: '110px', border: '1px solid #ccc' }}
                                 >
                                     <option value=''>-- เลือกเพศ --</option>
                                     <option value='ชาย'>ชาย</option>
                                     <option value='หญิง'>หญิง</option>
                                     <option value='ไม่ระบุ'>ไม่ระบุ</option>
                                 </select>
+                                
                             </div>
                         </div>
 
                         {/* Row 3: อาการเบื้องต้น dropdown */}
-                        <div style={{ marginTop: '10px' }}>
+                        <div style={{ marginTop: '10px' ,padding:'5px' }}>
                             <label>อาการเบื้องต้น</label><br/>
                             <select
                                 value={form.symptom}
@@ -222,7 +251,7 @@ function MainPage() {
                         </div>
 
                         {/* Row 4: หมายเหตุ */}
-                        <div style={{ marginTop: '10px' }}>
+                        <div style={{ marginTop: '10px',padding:'5px' }}>
                             <label>หมายเหตุเพิ่มเติม</label><br/>
                             <textarea
                                 value={form.note}
@@ -233,42 +262,115 @@ function MainPage() {
                                     width: '100%',
                                     marginTop: '4px',
                                     background: 'transparent',
-                                    border: '1px solid #555',
+                                    border: '1px solid #ffffff',
                                     borderRadius: '6px',
                                     padding: '8px',
                                     resize: 'vertical', // ← ลากขยายแนวตั้งได้
                                 }}
                             />
                         </div>
+                        <div>
+                            {selectedId && selectedTime && (
+                                <div style={{
+                                    marginTop: '12px',
+                                    padding: '10px 14px',
+                                    background: '#8bd8be',
+                                    border: '1px solid #1D9E75',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    fontSize: '13px',
+                                    color: '#aaa'
+                                    }}>
+                                    <span style={{ color: '#053627' }}>✓</span>
+                                    <p style={{ color: '#0b523b' }}>เลือกแพทย์:</p> <span style={{ color: '#0b523b' }}>
+                                        {doctorList.find(d => d.id === selectedId).name}
+                                    </span><p style={{ color: '#0b523b' }}> — เวลา</p> <span style={{ fontWeight: '600', color: '#0b523b' }}>
+                                        {selectedTime} น.
+                                    </span>
+                                </div>
+                            )}
+                        </div>
 
-                        {/* แสดงว่าเลือกแพทย์ใคร */}
-                        {selectedId && (
-                            <p style={{ color: 'white', marginTop: '8px' }}>
-                                แพทย์: {doctorList.find(d => d.id === selectedId).name}
-                            </p>
-                        )}
-
-                        {/* แสดงว่าเลือกเวลาไหน */}
-                        {selectedTime && (
-                            <p style={{ color: 'white' }}>
-                                เวลา: {selectedTime}
-                            </p>
-                        )}
-
-                        <button
-                            onClick={handleSubmit}
-                            style={{ marginTop: '12px', width: '100%', padding: '10px', background: '#1D9E75', borderRadius: '8px' }}
-                        >
-                            ยืนยันการจอง
-                        </button>
+                            <button
+                                onClick={handleSubmit}
+                                style={{ marginTop: '12px', width: '100%', padding: '10px', background: '#1D9E75', borderRadius: '8px' }}
+                            >
+                            <p style={{textAlign:'center', fontSize:'17px'}}>  ยืนยันการจอง </p>
+                            </button>
                     </div>
                 </div>
             </div>
         </div>
+                           // alert box //
+                {showModal && (
+                <div style={{
+                    position: 'fixed', inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                    background: '#1e1e1e',
+                    border: '1px solid #1D9E75',
+                    borderRadius: '16px',
+                    padding: '32px',
+                    width: '320px',
+                    textAlign: 'center'
+                    }}>
+                    {/* Icon */}
+                    <div style={{
+                        width: '56px', height: '56px',
+                        background: '#0F6E56',
+                        borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: '0 auto 16px',
+                        fontSize: '24px'
+                    }}>✓</div>
 
+                    <h2 style={{ color: '#1D9E75', marginBottom: '8px' }}>จองสำเร็จแล้ว!</h2>
 
+                    {/* ข้อมูลการจอง */}
+                    <div style={{
+                        background: '#2a2a2a',
+                        borderRadius: '10px',
+                        padding: '14px',
+                        margin: '16px 0',
+                        textAlign: 'left'
+                    }}>
+                        <p style={{ color: '#aaa', fontSize: '13px', marginBottom: '8px' }}>
+                        🩺 แพทย์: <span style={{ color: 'white' }}>{bookingData.doctor}</span>
+                        </p>
+                        <p style={{ color: '#aaa', fontSize: '13px' }}>
+                        🕐 เวลา: <span style={{ color: 'white' }}>{bookingData.time}</span>
+                        </p>
+                    </div>
 
-    );
+                    <button
+                        onClick={() => setShowModal(false)}
+                        style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: '#1D9E75',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                        }}
+                    >
+                        <p style={{textAlign:'center'}}>รับทราบ</p>
+                    </button>
+                    </div>
+                </div>
+                )}
+      
+        
+    </>
+);
+    
 }
 export default MainPage;
 
