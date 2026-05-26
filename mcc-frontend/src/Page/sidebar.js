@@ -12,8 +12,8 @@ function Sidebar() {
         <h1 style={{ color:'white', padding:'10px' }}>MedCare Clinic</h1>
       </div>
 
-      <button onClick={() => navigate('/main')}>จองคิว</button>
-      <button onClick={() => navigate('/patient')}>ประวัติผู้ป่วย</button>
+      <button onClick={() => navigate('/')}>จองคิว</button>
+      <button onClick={() => navigate('/patient')}>ประวัติการเข้ารักษา</button>
       <button onClick={() => navigate('/notification')}>แจ้งเตือน</button>
     </div>
   )

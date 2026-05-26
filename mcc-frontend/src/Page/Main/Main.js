@@ -5,6 +5,7 @@ import {doctors, patients, notifications,timeSlots } from '../../Mock/data.js'
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../sidebar.js'
+import { useAuth } from '../Context/AuthContext.js';
 
 function MainPage() {
     
@@ -13,6 +14,8 @@ function MainPage() {
     const [selectedTime, setSelectedTime] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [bookingData, setBookingData] = useState(null)
+
+    const { currentUser } = useAuth()
     const today = new Date()
 
     const dateText = today.toLocaleDateString('th-TH',{
@@ -67,6 +70,7 @@ function MainPage() {
         patient:   form,
     }
 
+    console.log('Who:', currentUser)
     console.log('ข้อมูลแพทย์:', bookingData) // ← ดูใน Console ได้เลย
     console.log('ข้อมูลผู้ป่วย:',form)
     setShowModal(true)
@@ -166,7 +170,7 @@ function MainPage() {
                                 <label>ชื่อ-นามสกุล</label><br/>
                                 <input
                                     type="text"
-                                    value={form.name}
+                                    value={currentUser?.name}
                                     onChange={e => {
                                         const val = e.target.value.replace(/[^ก-๙a-zA-Z\s]/g, '') // รับแค่ภาษาไทย อังกฤษ และเว้นวรรค
                                         if (val.length <= 50) handleChange('name', val)
@@ -178,14 +182,15 @@ function MainPage() {
                             <div style={{padding:'5px'}}>
                                 <label>หมายเลขโทรศัพท์</label><br/>
                                 <input
-                                    type='number'
-                                    value={form.phone}
-                                    onChange={e => 
-                                        {if (e.target.value.length <= 10) 
-                                            handleChange('phone', e.target.value)}}
-                                    placeholder='08x-xxx-xxxx'
-                                    style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' }}
-                                />
+                                    type="text"
+                                    value={currentUser?.phone}
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/[^0-9-]/g, '')  // รับแค่ตัวเลขและขีด
+                                        if (val.length <= 12) handleChange('phone', val)
+                                    }}
+                                    placeholder="08x-xxx-xxxx"
+                                    style={{ border:'1px solid #ccc', borderRadius:'8px', padding:'8px 12px', background:'transparent' }}
+                                    />
                             </div>
                         </div>
 
@@ -204,7 +209,7 @@ function MainPage() {
                                     style={{border: '1px solid #ccc', borderRadius: '8px', padding: '8px 12px', background:'transparent' ,width:'100px'}}
                                 /> */}
                                 <select
-                                    value={form.age}
+                                    value={currentUser?.age}
                                     onChange={e => handleChange('age', e.target.value)}
                                     style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '8px', background: 'transparent' ,width:'110px'}}
                                     >
@@ -219,7 +224,7 @@ function MainPage() {
                                 <label>เพศ</label><br/>
                                 {/* select = dropdown */}
                                 <select
-                                    value={form.sex}
+                                    value={currentUser?.sex}
                                     onChange={e => handleChange('sex', e.target.value)}
                                     style={{ background: 'rgb(65,65,65)', padding: '8px', borderRadius: '6px', width: '110px', border: '1px solid #ccc' }}
                                 >

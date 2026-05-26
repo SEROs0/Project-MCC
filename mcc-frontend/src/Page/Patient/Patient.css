@@ -7,3 +7,11 @@
 .headertext {
     margin: 20px 0 0 20px;
 }
+
+.box_information_heal {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 50vh;
+    padding: 20px 0 0 20px;
+}
+
