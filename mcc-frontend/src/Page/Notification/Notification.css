@@ -1,0 +1,267 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.notification-page {
+  display: flex;
+  min-height: 100vh;
+  background: #141414;
+}
+
+.notification-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.notif-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+/* Card */
+.notif-card {
+  background: #1e1e1e;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.notif-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid #2a2a2a;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notif-card-title span {
+  font-size: 11px;
+  color: #555;
+  font-weight: 400;
+}
+
+/* Notification item */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid #2a2a2a;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 4px;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: #252525;
+}
+
+.unread-dot {
+  width: 7px;
+  height: 7px;
+  background: #1D9E75;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.read-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+}
+
+.notif-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.ni-green { background: #0d3d2a; color: #1D9E75; }
+.ni-amber { background: #3d2a0d; color: #f0a500; }
+.ni-blue  { background: #0d1f3d; color: #4a9eff; }
+.ni-red   { background: #3d0d0d; color: #e57373; }
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+}
+
+.notif-title.read {
+  color: #888;
+  font-weight: 400;
+}
+
+.notif-sub {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #444;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Upcoming appointments */
+.appt-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #252525;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background 0.12s;
+}
+
+.appt-item:hover {
+  background: #2a2a2a;
+}
+
+.appt-time-block {
+  text-align: center;
+  min-width: 48px;
+}
+
+.appt-time-main {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+}
+
+.appt-time-date {
+  font-size: 10px;
+  color: #555;
+  margin-top: 1px;
+}
+
+.appt-divider {
+  width: 0.5px;
+  height: 32px;
+  background: #333;
+  flex-shrink: 0;
+}
+
+.appt-info {
+  flex: 1;
+}
+
+.appt-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+}
+
+.appt-detail {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.badge-green { background: #0d3d2a; color: #1D9E75; border: 0.5px solid #1D9E75; }
+.badge-amber { background: #3d2a0d; color: #f0a500; border: 0.5px solid #f0a500; }
+.badge-blue  { background: #0d1f3d; color: #4a9eff; border: 0.5px solid #4a9eff; }
+
+/* Settings toggles */
+.toggle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 0.5px solid #2a2a2a;
+}
+
+.toggle-item:last-child {
+  border-bottom: none;
+}
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+}
+
+.toggle-sub {
+  font-size: 11px;
+  color: #555;
+  margin-top: 2px;
+}
+
+.toggle-switch {
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+
+.toggle-knob {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  transition: left 0.2s;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 32px 0;
+  color: #444;
+  font-size: 13px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .notif-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .notification-content {
+    padding: 16px;
+  }
+}
