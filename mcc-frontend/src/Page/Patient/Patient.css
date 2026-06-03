@@ -1,17 +1,303 @@
-*{
-    padding: 0;
-    margin: 0;
-    border: 0;
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
-.headertext {
-    margin: 20px 0 0 20px;
+body {
+  background: #141414;
+  color: #e0e0e0;
+  font-family: 'Sarabun', sans-serif;
 }
 
+.patient-page {
+  display: flex;
+  min-height: 100vh;
+}
+
+.patient-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Header */
+.headertext h1 {
+  font-size: 22px;
+  font-weight: 500;
+  color: white;
+}
+
+.headertext p {
+  font-size: 13px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Patient Header */
+.patient-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0 16px;
+  padding: 16px 20px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  border: 0.5px solid #2a2a2a;
+}
+
+.patient-header-left h1 {
+  font-size: 20px;
+  font-weight: 500;
+  color: white;
+}
+
+.patient-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.patient-meta p {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  background: #1D9E75;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.patient-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-green {
+  background: #0d3d2a;
+  color: #1D9E75;
+  border: 0.5px solid #1D9E75;
+}
+
+.badge-red {
+  background: #3d0d0d;
+  color: #e57373;
+  border: 0.5px solid #e57373;
+}
+
+/* Grid Layout */
+.patient-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.patient-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card */
+.card {
+  background: #1e1e1e;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.card h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid #2a2a2a;
+}
+
+/* Health Info Grid */
 .box_information_heal {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    width: 50vh;
-    padding: 20px 0 0 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
+.health-item p:first-child {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.health-item p:last-child {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+}
+
+.divider {
+  border: none;
+  border-top: 0.5px solid #2a2a2a;
+  margin: 14px 0;
+}
+
+.congenital-label {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.congenital-value {
+  font-size: 13px;
+  color: #aaa;
+}
+
+/* Medicine */
+.med-item {
+  padding: 10px 0;
+  border-bottom: 0.5px solid #2a2a2a;
+}
+
+.med-item:last-child {
+  border-bottom: none;
+}
+
+.med-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+}
+
+.med-dose {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.next-appt {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #0d3d2a;
+  border-radius: 8px;
+  border: 0.5px solid #1D9E75;
+  font-size: 12px;
+  color: #1D9E75;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.no-appt {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #555;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tl-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid #2a2a2a;
+}
+
+.tl-item:last-child {
+  border-bottom: none;
+}
+
+.tl-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.tl-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1D9E75;
+  flex-shrink: 0;
+}
+
+.tl-dot.old {
+  background: #333;
+}
+
+.tl-body {
+  flex: 1;
+}
+
+.tl-date {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 3px;
+}
+
+.tl-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.tl-meta {
+  font-size: 12px;
+  color: #888;
+}
+
+.tl-diagnosis {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: #252525;
+  border-radius: 6px;
+  border-left: 2px solid #1D9E75;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .patient-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .patient-content {
+    padding: 16px;
+  }
+
+  .patient-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .box_information_heal {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

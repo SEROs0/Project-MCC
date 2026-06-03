@@ -7,109 +7,179 @@ import './Patient.css'
 function PatientHistory () {
 
     const [Patients, setPatient] = useState(patients)
-    const { currentUser } = useAuth()
+    const { currentUser, bookings } = useAuth()
 
     const Medicalhistory = currentUser?.history || []
-    const Latestprescription = Medicalhistory?.medicine || []
-    
+
+    // รวม mock history + การจองใหม่เข้าด้วยกัน
+  const allHistory = [
+            ...bookings?.map(b => ({           // ← แปลง booking เป็น format เดียวกับ history
+            id:              b.id,
+            date:            b.date,
+            doctor:          b.doctor,
+            dept:            '-',
+            diagnosis:       b.diagnosis,
+            symptoms:        b.symptoms || '-',
+            medicine:        b.medicine,
+            nextAppointment: b.nextAppointment,
+            status:          b.status,
+            isNew:           true,          // ← flag ว่าเป็นการจองใหม่
+            })) || [],
+            ...Medicalhistory,                // ← ประวัติเดิมจาก mock
+        ]
+
+    const Latestprescription = Medicalhistory.flatMap(h => h.medicine)
+
+    console.log('++++++++',allHistory)
     console.log('Whoooo are uuuu:',currentUser)
     console.log('history',Medicalhistory)
-    console.log('medicine',Medicalhistory)
+    console.log('medicine',Latestprescription)
 
-    return(
+    return (
         <>
-          <div style={{background:'rgb(27, 27, 27)' , display:'flex'}}>
-            <Sidebar/>
-            <div>
+            <div className="patient-page">
+            <Sidebar />
+
+            <div className="patient-content">
                 <div className="headertext">
-                    <h1 style={{color:'white'}}>ประวัติผู้เข้ารักษา</h1>
-                    <p>ข้อมูลการรักษาและประวัติยา</p>
+                <h1>ประวัติผู้เข้ารักษา</h1>
+                <p>ข้อมูลการรักษาและประวัติยา</p>
                 </div>
-                <div style={{display:'flex'}}>
-                    <div>
-                        <h1>{currentUser?.name}</h1>
-                        <div style={{gap:'5px', display:'flex'}}>
-                            <p>HN: {currentUser?.hn}</p>
-                            <span style={{ display: 'inline-block',
-                                                width: '10px',
-                                                height: '10px',
-                                                backgroundColor: '#25be8e', 
-                                                borderRadius: '50%',
-                                                marginTop:'7px'
-                                            }}></span>
-                            <p>อายุ: {currentUser?.age}</p>
-                            <span style={{ display: 'inline-block',
-                                                width: '10px',
-                                                height: '10px',
-                                                backgroundColor: '#25be8e', 
-                                                borderRadius: '50%',
-                                                marginTop:'7px'
-                                            }}></span>
-                            <p>เพศ: {currentUser?.sex}</p>
-                            <span style={{ display: 'inline-block',
-                                                width: '10px',
-                                                height: '10px',
-                                                backgroundColor: '#25be8e', 
-                                                borderRadius: '50%',
-                                                marginTop:'7px'
-                                            }}></span>
-                            <p>กรุ๊ปเลือด: {currentUser?.blood}</p>             
-                        </div>
+
+                {/* Patient Header */}
+                <div className="patient-header">
+                <div className="patient-header-left">
+                    <h1>{currentUser?.name}</h1>
+                    <div className="patient-meta">
+                    <p>HN: {currentUser?.hn}</p>
+                    <div className="dot" />
+                    <p>อายุ {currentUser?.age} ปี</p>
+                    <div className="dot" />
+                    <p>{currentUser?.sex}</p>
+                    <div className="dot" />
+                    <p>กรุ๊ปเลือด {currentUser?.blood}</p>
                     </div>
-                    <div style={{display:'flex', gap:'10px'}}>
-                        <p>{currentUser?.status}</p> <p>แพ้ยา {currentUser?.allergy}</p>
-                    </div>
-                    
                 </div>
-                <div></div>
-                <div style={{padding:'20px 0 0 20px', width:'auto'}}>
-                    <div style={{background:'#424242',borderRadius:'8px'}}>
-                        <h3 style={{padding:'20px 0 0 20px'}}>ข้อมูลสุขภาพ</h3>
-                        <div className="box_information_heal">
-                            <div>
-                                <p style={{gap:'5px'}}>น่ำหนัก</p>
-                                <p>{currentUser?.weight} กก.</p>
-                            </div>
-                            <div>
-                                <p>ส่วนสูง</p>
-                                <p>{currentUser?.height}</p>             
-                            </div>
-                            <div>
-                                <p style={{gap:'5px'}}>BMI</p>
-                                <p>{currentUser?.bmi} </p>
-                            </div>
-                            <div>
-                                <p>ความดัน</p>
-                                <p>{currentUser?.bloodPressure}</p>             
-                            </div>
-                            <div>
-                                <p style={{gap:'5px'}}>ชีพจร</p>
-                                <p>{currentUser?.pulse} bpm</p>
-                            </div>
-                            <div>
-                                <p>อุณหภูมิ</p>
-                                <p>{currentUser?.temp} °C</p>             
-                            </div>
-                            
+                <div className="patient-badges">
+                    <span className="badge badge-green">{currentUser?.status}</span>
+                    {currentUser?.allergy !== '-' && (
+                    <span className="badge badge-red">แพ้ยา {currentUser?.allergy}</span>
+                    )}
+                </div>
+                </div>
+
+                {/* Main Grid */}
+                <div className="patient-grid">
+
+                {/* Left Column */}
+                <div className="patient-left">
+
+                    {/* ข้อมูลสุขภาพ */}
+                    <div className="card">
+                    <h3>ข้อมูลสุขภาพ</h3>
+                    <div className="box_information_heal">
+                        <div className="health-item">
+                        <p>น้ำหนัก</p>
+                        <p>{currentUser?.weight} กก.</p>
                         </div>
-                        <div>
-                            <p>โรคประจำตัว</p>
-                            <div>
-                                <p>{currentUser?.congenital}</p>
-                            </div>
+                        <div className="health-item">
+                        <p>ส่วนสูง</p>
+                        <p>{currentUser?.height} ซม.</p>
+                        </div>
+                        <div className="health-item">
+                        <p>BMI</p>
+                        <p>{currentUser?.bmi}</p>
+                        </div>
+                        <div className="health-item">
+                        <p>ความดัน</p>
+                        <p>{currentUser?.bloodPressure}</p>
+                        </div>
+                        <div className="health-item">
+                        <p>ชีพจร</p>
+                        <p>{currentUser?.pulse} bpm</p>
+                        </div>
+                        <div className="health-item">
+                        <p>อุณหภูมิ</p>
+                        <p>{currentUser?.temp} °C</p>
                         </div>
                     </div>
-                    <div style={{background:'#424242',borderRadius:'8px', margin:'10px 0 0 0'}}>
-                        <h3>ใบสั่งยา</h3>
-                        <div>
-                            
-                        </div>
+                    <hr className="divider" />
+                    <p className="congenital-label">โรคประจำตัว</p>
+                    <p className="congenital-value">{currentUser?.congenital}</p>
                     </div>
+
+                    {/* ใบสั่งยาล่าสุด */}
+                    <div className="card">
+                    <h3>ใบสั่งยาล่าสุด</h3>
+                    {Latestprescription.length === 0 ? (
+                        <p style={{ color: '#555', fontSize: '13px' }}>ไม่มีข้อมูลยา</p>
+                    ) : (
+                        Latestprescription.map((med, index) => (
+                        <div key={index} className="med-item">
+                            <p className="med-name">{med.name}</p>
+                            <p className="med-dose">{med.dose}</p>
+                        </div>
+                        ))
+                    )}
+
+                    {Medicalhistory[0]?.nextAppointment === '-' ? (
+                        <p className="no-appt">ไม่มีนัดติดตามอาการเพิ่มเติม</p>
+                    ) : (
+                        <div className="next-appt">
+                        📅 นัดติดตามอาการ: {Medicalhistory[0]?.nextAppointment}
+                        </div>
+                    )}
+                    </div>
+                </div>
+
+                {/* Right Column — ประวัติการรักษา */}
+                <div className="card">
+                    <h3>ประวัติการรักษา</h3>
+                    <div className="timeline">
+                    {allHistory.length === 0 ? (
+                        <p style={{ color: '#555', fontSize: '13px' }}>ยังไม่มีประวัติการรักษา</p>
+                    ) : (
+                        allHistory.map((history, index) => (
+                        <div key={history.id ?? index} className='tl-item'>
+                            <div className='tl-left'>
+                            <div className={`tl-dot ${index > 0 ? 'old' : ''}`} />
+                            </div>
+                            <div className='tl-body'>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <p className='tl-date'>{history.date}</p>
+                                {history.isNew && (  // ← แสดง badge "ใหม่" เฉพาะที่เพิ่งจอง
+                                <span style={{
+                                    background: '#0d3d2a', color: '#1D9E75',
+                                    border: '0.5px solid #1D9E75',
+                                    padding: '1px 7px', borderRadius: '20px',
+                                    fontSize: '10px'
+                                }}>ใหม่</span>
+                                )}
+                                {history.status && (
+                                <span style={{
+                                    background: history.status === 'รอตรวจ' ? '#3d2a0d' : '#0d3d2a',
+                                    color:      history.status === 'รอตรวจ' ? '#f0a500' : '#1D9E75',
+                                    padding: '1px 7px', borderRadius: '20px',
+                                    fontSize: '10px'
+                                }}>{history.status}</span>
+                                )}
+                            </div>
+                            <p className='tl-title'>{history.diagnosis}</p>
+                            <p className='tl-meta'>{history.doctor}</p>
+                            {history.symptoms !== '-' && (
+                                <p className='tl-diagnosis'>{history.symptoms}</p>
+                            )}
+                            </div>
+                        </div>
+                        ))
+                    )}
+                    </div>
+                </div>
+
                 </div>
             </div>
-          </div>
+            </div>
         </>
-        
-    )
+)
 }
 export default PatientHistory
