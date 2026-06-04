@@ -1,4 +1,4 @@
-# 🏥 MedCare Clinic — Frontend Web Application
+# 🏥 MedCare Clinic — Full Stack Web Application
 
 ระบบจองคิวและบริหารจัดการคลินิกออนไลน์ พัฒนาด้วย React.js
 
@@ -37,9 +37,9 @@ npm start
 ## 📖 วิธีใช้งาน
 
 **1. เข้าสู่ระบบ**
+```bash
 2026-00182 (สมหมาย ใจดี)
-
----
+```
 
 ## 👨‍💻 ผู้พัฒนา
 
