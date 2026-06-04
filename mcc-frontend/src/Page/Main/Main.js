@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../sidebar.js'
 import { useAuth } from '../Context/AuthContext.js';
+import { getDoctors,createBooking } from '../../api.js';
 
 // คำนวณ slot ปัจจุบันจากเวลาจริง
 const getCurrentSlot = () => {
@@ -19,12 +20,21 @@ const getCurrentSlot = () => {
 
 function MainPage() {
     
-    const [doctorList, setDoctorList] = useState(doctors)
+    const [doctorList, setDoctorList] = useState([])
+
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            const data = await getDoctors()
+            setDoctorList(data)
+        }
+        fetchDoctors()
+    }, [])
 
     const [selectedId, setSelectedId] = useState(null)
     const [selectedTime, setSelectedTime] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [bookingData, setBookingData] = useState(null)
+    const [selectedSlotId ,setSelectedSlotId] = useState(null)
 
     const { currentUser, addBooking } = useAuth()
 
@@ -47,9 +57,9 @@ function MainPage() {
 
     // คิวที่เหลือของแพทย์ในเวลาที่เลือก
     const getRemainingSlot = (doctorId) => {
-    if (!selectedTime) return CAPACITY
-    const key = `${doctorId}_${selectedTime}`
-    return CAPACITY - (slotBookings[key] ?? 0)
+        if (!selectedTime) return CAPACITY
+        const key = `${doctorId}_${selectedTime}`
+        return CAPACITY - (slotBookings[key] ?? 0)
     }
 
 
@@ -87,7 +97,7 @@ function MainPage() {
         setForm({...form,[field]: value})
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
     // ตรวจสอบว่ากรอกครบหรือยัง
     if (!selectedId) {
         alert('กรุณาเลือกแพทย์ก่อน')
@@ -128,13 +138,26 @@ function MainPage() {
         [key]: (prev[key] ?? 0) + 1
     }))
 
+    const data = await createBooking({
+        patientId: currentUser.id,
+        doctorId: selectedId,
+        slotTimeId:  selectedSlotId,
+        bookingData: new Date().toISOString().split('T')[0],
+        symptom: form.symptom,
+        note: form.note
+    })
 
-    const data = {
-        doctor:  doctorList.find(d => d.id === selectedId).name,
-        time:    selectedTime,
-        patient: form,
-        }
-    
+    if (data.success){
+        setBookingData ({
+            doctor:  doctorList.find(d => d.id === selectedId).name,
+            time:    selectedTime,
+            patient: data.queueNumber,
+            })
+        setShowModal(true)
+    } else {
+        alert(data.message)
+    }
+
     setDoctorList(prev => prev.map(d =>
         d.id === selectedId
             ? {...d, available: d.available -1 } : d

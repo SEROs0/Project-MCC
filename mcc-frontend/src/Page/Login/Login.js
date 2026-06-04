@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../Context/AuthContext.js'
 import { patients } from '../../Mock/data.js'
 import { AuthProvider } from '../Context/AuthContext.js'
+import { login } from '../../api.js'
 
 function LoginPage() {
   const [hn, setHn] = useState('')
@@ -10,19 +11,20 @@ function LoginPage() {
   const { setCurrentUser } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // ค้นหาผู้ป่วยจาก HN
-    const found = patients.find(p => p.hn === hn.trim())
+    // const found = patients.find(p => p.hn === hn.trim())
+    if (!hn.trim()) { setError('กรุณากรอก HN'); return}
 
-    if (!found) {
-      setError('ไม่พบ HN นี้ในระบบ')
-      return
+    const data = await login(hn)
+
+    if (data.success) {
+      setCurrentUser(data.patient)
+      navigate('/')
+    } else {
+      setError(data.message)
     }
 
-    setCurrentUser(found)   // ← เก็บข้อมูลผู้ป่วยที่ login
-    console.log('User:',found)
-    navigate('/')
-               // ← ไปหน้าจองคิว
   }
 
   return (
