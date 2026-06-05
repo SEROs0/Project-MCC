@@ -20,7 +20,7 @@ function LoginPage() {
 
     if (data.success) {
       setCurrentUser(data.patient)
-      navigate('/')
+      navigate('/main')
     } else {
       setError(data.message)
     }

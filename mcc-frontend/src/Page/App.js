@@ -1,5 +1,5 @@
 import { AuthProvider } from './Context/AuthContext'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import MainPage from './Main/Main'
 import PatientHistory from './Patient/Patient'
 import LoginPage from '../Page/Login/Login'
@@ -13,7 +13,8 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login"   element={<LoginPage />} />
-                    <Route path='/' element={<MainPage/>}/>
+                    <Route path='/' element={<Navigate to='/login' replace/>}/>
+                    <Route path='/main' element={<MainPage/>}/>
                     <Route path='/patient' element={<PatientHistory/>}/>
                     <Route path='/notification' element={<Notification/>}/>
                 </Routes>
