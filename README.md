@@ -1,4 +1,4 @@
-# 🏥 MedCare Clinic — Full Stack Web Application (โปรเจคนี้ยังอยู่ในขั้นตอน Development )
+# 🏥 MedCare Clinic — Full Stack Web Application (โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ )
 
 ระบบจองคิวและบริหารจัดการคลินิกออนไลน์ พัฒนาด้วย React.js
 
