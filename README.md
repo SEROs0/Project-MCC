@@ -1,4 +1,7 @@
-# 🏥 MedCare Clinic — Full Stack Web Application (โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ )
+#โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ / Branch Developer จะเป็น Branch หลักในการพัฒนาซอร์ดโค๊ด
+
+---
+# 🏥 MedCare Clinic — Full Stack Web Application 
 
 ระบบจองคิวและบริหารจัดการคลินิกออนไลน์ พัฒนาด้วย React.js
 
