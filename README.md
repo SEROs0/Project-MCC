@@ -1,4 +1,4 @@
-#โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ / Branch Developer จะเป็น Branch หลักในการพัฒนาซอร์ดโค๊ด
+#โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ / Branch Developer จะเป็น Branch หลักสำหรับการพัฒนาซอร์สโค้ด ก่อน
 
 ---
 # 🏥 MedCare Clinic — Full Stack Web Application 
