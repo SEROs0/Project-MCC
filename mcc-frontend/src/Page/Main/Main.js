@@ -1,12 +1,12 @@
 import './Main.css';
 import App from '../App.js'
 import { Calendar, LayoutDashboard, ClipboardList, Bell, User, Heart, AlignCenter } from 'lucide-react';
-import {doctors, patients, notifications,timeSlots } from '../../Mock/data.js'
+import {doctors, patients, notifications,timeslots } from '../../Mock/data.js'
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate ,BrowserRouter, Routes, Route, Navigate, data} from 'react-router-dom';
 import Sidebar from '../sidebar.js'
 import { useAuth } from '../Context/AuthContext.js';
-import { getDoctors,createBooking } from '../../api.js';
+import { getDoctors,createBooking,gettimeSlots,getSlotBookings } from '../../api.js';
 
 // คำนวณ slot ปัจจุบันจากเวลาจริง
 const getCurrentSlot = () => {
@@ -20,61 +20,91 @@ const getCurrentSlot = () => {
 
 function MainPage() {
     
+    const { currentUser, addBooking } = useAuth()
+    
     const [doctorList, setDoctorList] = useState([])
-
-    useEffect(() => {
-        const fetchDoctors = async () => {
-            const data = await getDoctors()
-            setDoctorList(data)
-        }
-        fetchDoctors()
-    }, [])
-
     const [selectedId, setSelectedId] = useState(null)
     const [selectedTime, setSelectedTime] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [bookingData, setBookingData] = useState(null)
     const [selectedSlotId ,setSelectedSlotId] = useState(null)
+    const [slotBookings, setSlotBookings] = useState({})
+    const [timeSlotsList, setTimeSlotsList] = useState([])
+    
+    const [form, setForm] = useState({
+        name:     currentUser?.name ?? '',
+        phone:    currentUser?.phone ?? '',
+        age:      currentUser?.age ?? '',
+        sex:      currentUser?.sex ?? '',
+        symptom:  '',
+        note:     '',
+    })
+    
+    
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            const data = await getDoctors()
+            setDoctorList(data)
+        }
+        const fetchTimeSlot = async () => {
+            const data = await gettimeSlots()
+            setTimeSlotsList(data)
+        }
+        const fetchSlotBookings = async () => {
+            const date = new Date().toISOString().split('T')[0]
+            const data = await getSlotBookings(date)
+            const map = {}
+            data.forEach(row => {
+                map[`${row.doctor_id}_${row.slot_time_id}`] = row.booked_count
+            })
+            setSlotBookings(map)
+        }
+        fetchDoctors()
+        fetchTimeSlot()
+        fetchSlotBookings()
+    }, [])
 
-    const { currentUser, addBooking } = useAuth()
+    if (!currentUser) return <Navigate to="/login"/>
+
 
     const today = new Date()
-
     const now = new Date()
     const currentHour   = now.getHours()
     const currentMinute = now.getMinutes()
-
-    // เพิ่ม state เก็บคิวแยกตาม doctorId_time
-    const [slotBookings, setSlotBookings] = useState({})
-
     const CAPACITY = 5
 
-    // เช็คว่า slot นั้นเต็มไหม
-    const isSlotFull = (doctorId, time) => {
-    const key = `${doctorId}_${time}`
-    return (slotBookings[key] ?? 0) >= CAPACITY
+
+    // เช็คว่า slot นั้นเต็มไหม (key คือ doctorId_slotTimeId)
+    const isSlotFull = (doctorId, slotId) => {
+        const key = `${doctorId}_${slotId}`
+        return (slotBookings[key] ?? 0) >= CAPACITY
     }
 
     // คิวที่เหลือของแพทย์ในเวลาที่เลือก
     const getRemainingSlot = (doctorId) => {
-        if (!selectedTime) return CAPACITY
-        const key = `${doctorId}_${selectedTime}`
+        if (!selectedSlotId) return CAPACITY
+        const key = `${doctorId}_${selectedSlotId}`
         return CAPACITY - (slotBookings[key] ?? 0)
     }
 
 
     // แปลง timeSlots เป็น object พร้อม available
-    const slots = timeSlots.map(time => {
-    const [slotHour, slotMinute] = time.split(':').map(Number)
+    const slots = timeSlotsList.map(slot => {
+        const time = slot?.slot_time || ''
+        
+        const [slotHour, slotMinute] = time.includes(':')
+            ? time.split(':').map(Number) : [0,0]
 
-    // เปรียบเทียบกับเวลาปัจจุบัน
-    const isPast = slotHour < currentHour ||
-        (slotHour === currentHour && slotMinute <= currentMinute)
+        // slot หมดเวลาเมื่อเวลาปัจจุบันเลยเวลาสิ้นสุด slot (เริ่ม + 30 นาที)
+        const slotTotalMinutes = slotHour * 60 + slotMinute
+        const currentTotalMinutes = currentHour * 60 + currentMinute
+        const isPast = currentTotalMinutes >= slotTotalMinutes + 30
 
-    return {
-        time,
-        available: !isPast   // ← ผ่านไปแล้ว = ไม่ว่าง
-    }
+        return {
+            id: slot?.id,
+            time: time ? time.substring(0,5) : '--:--',
+            available: time ? (!isPast && slot.is_active === 1 ) : false  // ← ผ่านไปแล้ว = ไม่ว่าง
+        }
     })
 
     const dateText = today.toLocaleDateString('th-TH',{
@@ -84,14 +114,6 @@ function MainPage() {
         year:    'numeric' 
     })
     
-    const [form, setForm] = useState({
-        name:     currentUser.name,
-        phone:    currentUser.phone,
-        age:      currentUser.age,
-        sex:      currentUser.sex,
-        symptom:  '',
-        note:     '',
-    })
 
     const handleChange = (field, value) => {
         setForm({...form,[field]: value})
@@ -124,56 +146,37 @@ function MainPage() {
         return
     }
 
-    if (isSlotFull(selectedId, selectedTime)) {
+    if (isSlotFull(selectedId, selectedSlotId)) {
         alert('คิวช่วงเวลานี้เต็มแล้ว กรุณาเลือกเวลาอื่น')
         return
     }
 
-    // เช็คอีกครั้งก่อน submit
-     const key = `${selectedId}_${selectedTime}`
-
-     // ← เพิ่มจำนวนการจองใน slot นั้น
-    setSlotBookings(prev => ({
-        ...prev,
-        [key]: (prev[key] ?? 0) + 1
-    }))
-
     const data = await createBooking({
-        patientId: currentUser.id,
-        doctorId: selectedId,
+        patientId:   currentUser.id,
+        doctorId:    selectedId,
         slotTimeId:  selectedSlotId,
-        bookingData: new Date().toISOString().split('T')[0],
-        symptom: form.symptom,
-        note: form.note
+        bookingDate: new Date().toISOString().split('T')[0],
+        symptom:     form.symptom,
+        note:        form.note
     })
 
-    if (data.success){
-        setBookingData ({
-            doctor:  doctorList.find(d => d.id === selectedId).name,
-            time:    selectedTime,
-            patient: data.queueNumber,
-            })
+    if (data.success) {
+        const key = `${selectedId}_${selectedSlotId}`
+        setSlotBookings(prev => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }))
+        setBookingData({
+            doctor: doctorList.find(d => d.id === selectedId)?.name,
+            time:   selectedTime,
+        })
+        addBooking({
+            doctor: doctorList.find(d => d.id === selectedId)?.name,
+            time:   selectedTime,
+            patient: { symptom: form.symptom, note: form.note }
+        })
         setShowModal(true)
     } else {
         alert(data.message)
     }
-
-    setDoctorList(prev => prev.map(d =>
-        d.id === selectedId
-            ? {...d, available: d.available -1 } : d
-    ))
-
-    const doctor = {
-        Doctor: doctorList.find(d => d.id === selectedId)
-    }
-
-    addBooking(data)
-    setBookingData(data)
-    setShowModal(true)
-    
-
 }
-
 
     return (
             <>
@@ -199,8 +202,8 @@ function MainPage() {
                         </div>
                         <div className='time-slot'>
                             {slots.map(slot => (
-                                <div key={slot.time}
-                                onClick={() => { if (slot.available) setSelectedTime(slot.time) }}
+                                <div key={slot.id}
+                                onClick={() => { if (slot.available) { setSelectedTime(slot.time); setSelectedSlotId(slot.id) } }}
                                 style={{
                                     padding: '8px',
                                     textAlign: 'center',
@@ -246,7 +249,7 @@ function MainPage() {
                             )}
                             <div className='doctor_card'>
                                 {doctorList.map(doctor => {
-                                const isFull = selectedTime ? isSlotFull(doctor.id, selectedTime) : false
+                                const isFull = selectedSlotId ? isSlotFull(doctor.id, selectedSlotId) : false
                                 const remaining = getRemainingSlot(doctor.id)
 
                                 return (
@@ -264,20 +267,17 @@ function MainPage() {
                                         opacity: isFull ? 0.4 : 1
                                     }}
                                     >
-                                    <p style={{ fontWeight:'500', fontSize:'13px', color: isFull ? '#555' : 'white' }}>
+                                    <p style={{ fontWeight:'500', fontSize:'13px', color: isFull ? '#555' : 'white', textAlign: 'center'}}>
                                         {doctor.name}
                                     </p>
-                                    <p style={{ fontSize:'12px', color:'#555', margin:'2px 0 6px' }}>
+                                    <p style={{ fontSize:'12px', color:'#555', margin:'2px 0 6px', textAlign: 'center'}}>
                                         {doctor.dept}
                                     </p>
-                                    <p style={{ fontSize:'12px', color: isFull ? '#e57373' : '#1D9E75' }}>
-                                        {!selectedTime
-                                        ? `● ว่าง ${remaining} คิว`
-                                        : isFull
-                                            ? '● คิวเต็มแล้ว'
-                                            : `● ว่าง ${remaining} คิว`
-                                        }
+                                    {selectedTime && (
+                                    <p style={{ fontSize:'12px', color: isFull ? '#e57373' : '#1D9E75', textAlign: 'center' }}>
+                                        {isFull ? '● คิวเต็มแล้ว' : `● ว่าง ${remaining} คิว`}
                                     </p>
+                                    )}
                                     </div>
                                 )
                                 })}

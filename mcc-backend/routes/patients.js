@@ -34,4 +34,17 @@ router.get('/:id/history', async (req, res) => {
   }
 })
 
+router.get('/timeslots', async (req,res) => {
+  try {
+    const [timeSlots] = await db.query(
+      `SELECT * 
+      FROM mcc_project.time_slots` ,
+      [req.params.id]
+    )
+    res.json(timeSlots)
+  } catch (err) {
+    res.status(500).json({message: err.message})
+  }
+})
+
 module.exports = router

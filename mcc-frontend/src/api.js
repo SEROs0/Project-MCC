@@ -33,6 +33,16 @@ export const createBooking = async (data) => {
   return res.json()
 }
 
+export const gettimeSlots = async () => {
+  const res = await fetch(`${BASE_URL}/timeslots`)
+  return res.json()
+}
+
+export const getSlotBookings = async (date) => {
+  const res = await fetch(`${BASE_URL}/bookings/slots?date=${date}`)
+  return res.json()
+}
+
 export const getBookings = async (patientId) => {
   const res = await fetch(`${BASE_URL}/bookings/patient/${patientId}`)
   return res.json()

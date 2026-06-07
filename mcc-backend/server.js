@@ -14,6 +14,7 @@ app.use('/api/patients',      require('./routes/patients'))
 app.use('/api/doctors',       require('./routes/doctors'))
 app.use('/api/bookings',      require('./routes/bookings'))
 app.use('/api/notifications', require('./routes/notifications'))
+app.use('/api/timeslots',     require('./routes/timeslots'))
 
 // รัน server
 const PORT = process.env.PORT || 8080

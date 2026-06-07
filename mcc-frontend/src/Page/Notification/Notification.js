@@ -3,101 +3,156 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../sidebar'
 import { useAuth } from '../Context/AuthContext'
 
-function NotificationPage() {
-  const { currentUser, bookings } = useAuth()
+const getRelativeTime = (ts, now) => {
+  const diff = Math.floor((now - ts) / 1000)
+  if (isNaN(diff) || diff < 0) return 'เมื่อกี้'
+  if (diff < 60)    return 'เมื่อกี้'
+  if (diff < 3600)  return `${Math.floor(diff / 60)} นาทีที่แล้ว`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ชม.ที่แล้ว`
+  return `${Math.floor(diff / 86400)} วันที่แล้ว`
+}
 
-  // แปลง bookings เป็น notifications
-  const bookingNotifs = bookings.map(b => ({
-    id:    b.id,
-    type:  'green',
-    icon:  'ti-calendar-check',
-    title: 'จองคิวสำเร็จแล้ว',
-    sub:   `${b.doctor} — ${b.date} เวลา ${b.time} น.`,
-    time:  'ล่าสุด',
-    read:  false,
-  })) 
+const DEFAULT_TOGGLES = { remind1day: true, remind2hr: true }
+
+function NotificationPage() {
+  const { bookings } = useAuth()
+  const [now, setNow] = useState(Date.now())
+
+  const [readIds, setReadIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('readNotifIds') || '[]')) }
+    catch { return new Set() }
+  })
+
+  const [toggles, setToggles] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('notifToggles')) || DEFAULT_TOGGLES }
+    catch { return DEFAULT_TOGGLES }
+  })
+
+  const [notifPermission, setNotifPermission] = useState(
+    'Notification' in window ? Notification.permission : 'unsupported'
+  )
+
+  // อัปเดตเวลาทุก 60 วิ
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // บันทึก toggles ลง localStorage ทุกครั้งที่เปลี่ยน
+  useEffect(() => {
+    localStorage.setItem('notifToggles', JSON.stringify(toggles))
+  }, [toggles])
+
+  // schedule browser notification ตาม bookings + toggles
+  useEffect(() => {
+    if (notifPermission !== 'granted' || !bookings?.length) return
+
+    const timers = []
+
+    bookings.forEach(b => {
+      if (!b.time) return
+      const [h, m] = b.time.split(':').map(Number)
+      const apptTime = new Date()
+      apptTime.setHours(h, m, 0, 0)
+
+      if (toggles.remind2hr) {
+        const delay = apptTime.getTime() - 2 * 3600 * 1000 - Date.now()
+        if (delay > 0) {
+          timers.push(setTimeout(() => {
+            new Notification('MedCare — แจ้งเตือนนัดหมาย', {
+              body: `อีก 2 ชั่วโมง คุณมีนัดกับ ${b.doctor} เวลา ${b.time} น.`,
+              icon: '/favicon.ico'
+            })
+          }, delay))
+        }
+      }
+
+      if (toggles.remind1day) {
+        const delay = apptTime.getTime() - 24 * 3600 * 1000 - Date.now()
+        if (delay > 0) {
+          timers.push(setTimeout(() => {
+            new Notification('MedCare — แจ้งเตือนนัดหมาย', {
+              body: `พรุ่งนี้คุณมีนัดกับ ${b.doctor} เวลา ${b.time} น.`,
+              icon: '/favicon.ico'
+            })
+          }, delay))
+        }
+      }
+    })
+
+    return () => timers.forEach(clearTimeout)
+  }, [bookings, toggles, notifPermission])
 
   const [notifications, setNotifications] = useState([
-    ...bookingNotifs,
     {
       id: 'n1', type: 'amber', icon: 'ti-clock',
       title: 'เตือนนัดหมายพรุ่งนี้',
       sub: 'มีนัด 09:00 น. — นพ. สมชาย',
-      time: '1 ชม.', read: false
+      createdAt: Date.now() - 3600000, read: readIds.has('n1')
     },
   ])
 
-  const [toggles, setToggles] = useState({
-    remind1day: true,
-    remind2hr: true,
-    medicine: false,
-    result: true,
-  })
-
-  const upcomingAppts = [
-    { time: '10:30', date: 'วันนี้',    name: currentUser?.name ?? 'ผู้ป่วย', detail: 'พญ. สุดา • กุมารเวช',  badge: 'badge-amber', label: 'เร็วๆ นี้' },
-    { time: '09:00', date: 'พรุ่งนี้',  name: 'ติดตามอาการ',                  detail: 'นพ. สมชาย • อายุรกรรม', badge: 'badge-green', label: 'ยืนยัน' },
-    { time: '10:30', date: '29 พ.ค.',   name: 'ติดตามอาการ',                  detail: 'พญ. สุดา • กุมารเวช',  badge: 'badge-blue',  label: 'จอง' },
-  ]
+  useEffect(() => {
+    if (!bookings || !Array.isArray(bookings)) return
+    const newNotifs = bookings.map(b => ({
+      id:        b.id,
+      type:      'green',
+      icon:      'ti-calendar-check',
+      title:     'จองคิวสำเร็จแล้ว',
+      sub:       `${b.doctor} — ${b.date} เวลา ${b.time} น.`,
+      createdAt: Number(b.id) || Date.now(),
+      read:      readIds.has(b.id),
+    }))
+    setNotifications(prev => {
+      const nonBookingNotifs = prev.filter(n => typeof n.id === 'string')
+      return [...newNotifs, ...nonBookingNotifs]
+    })
+  }, [bookings])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
   const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    setNotifications(prev => {
+      const allIds = prev.map(n => n.id)
+      const newSet = new Set([...readIds, ...allIds])
+      localStorage.setItem('readNotifIds', JSON.stringify([...newSet]))
+      setReadIds(newSet)
+      return prev.map(n => ({ ...n, read: true }))
+    })
   }
 
   const markRead = (id) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-  }
-
-  const toggleSwitch = (key) => {
-    setToggles(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  const iconColorMap = {
-    green: 'ni-green',
-    amber: 'ni-amber',
-    blue:  'ni-blue',
-    red:   'ni-red',
-  }
-
-//   // แปลง bookings เป็น notifications
-//   const bookingNotifs = bookings.map(b => ({
-//     id:    b.id,
-//     type:  'green',
-//     icon:  'ti-calendar-check',
-//     title: 'จองคิวสำเร็จแล้ว',
-//     sub:   `${b.doctor} — ${b.date} เวลา ${b.time} น.`,
-//     time:  'ล่าสุด',
-//     read:  false,
-//   }))
-
-    useEffect(() => {
-        
-        if (!bookings || !Array.isArray(bookings)) return
-
-        const newNotifs = bookings.map(b => ({
-        id:    b.id,
-        type:  'green',
-        icon:  'ti-calendar-check',
-        title: 'จองคิวสำเร็จแล้ว',
-        sub:   `${b.doctor} — ${b.date} เวลา ${b.time} น.`,
-        time:  'ล่าสุด',
-        read:  false,
-        }))
-
-    setNotifications(prev => {
-
-        // กรองเอาแจ้งเตือนเก่าที่ไม่ซ้ำกับไอดีที่เข้ามาใหม่
-      const filteredPrev = prev.filter(p => !newNotifs.some(n => n.id === p.id))
-      // กันซ้ำ — เอาเฉพาะที่ไม่ใช่ booking notification เดิม
-      const nonBookingNotifs = prev.filter(n => typeof n.id === 'string')
-      return [...newNotifs
-        , ...nonBookingNotifs
-    ]
+    setReadIds(prev => {
+      const next = new Set([...prev, id])
+      localStorage.setItem('readNotifIds', JSON.stringify([...next]))
+      return next
     })
-  }, [bookings])  // ← รันใหม่ทุกครั้งที่ bookings เปลี่ยน
+  }
 
+  const toggleSwitch = async (key) => {
+    const newVal = !toggles[key]
+
+    // ขอ permission เมื่อเปิด remind toggle
+    if (newVal && (key === 'remind1day' || key === 'remind2hr')) {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission()
+        setNotifPermission(permission)
+        if (permission === 'granted') {
+          new Notification('MedCare', { body: 'เปิดการแจ้งเตือนสำเร็จแล้ว ✓', icon: '/favicon.ico' })
+        }
+      }
+    }
+
+    setToggles(prev => ({ ...prev, [key]: newVal }))
+  }
+
+  const iconColorMap = { green: 'ni-green', amber: 'ni-amber', blue: 'ni-blue', red: 'ni-red' }
+
+  const toggleItems = [
+    { key: 'remind1day', label: 'เตือนก่อนนัด 1 วัน', sub: 'Browser Push Notification' },
+    { key: 'remind2hr',  label: 'เตือนก่อนนัด 2 ชม.', sub: 'Browser Push Notification' },
+  ]
 
   return (
     <div className='notification-page'>
@@ -111,7 +166,7 @@ function NotificationPage() {
 
         <div className='notif-grid'>
 
-          {/* คอลัมน์ซ้าย — รายการแจ้งเตือน */}
+          {/* คอลัมน์ซ้าย */}
           <div>
             <div className='notif-card'>
               <div className='notif-card-title'>
@@ -121,8 +176,7 @@ function NotificationPage() {
                     <span style={{
                       background: '#0d3d2a', color: '#1D9E75',
                       border: '0.5px solid #1D9E75',
-                      padding: '2px 8px', borderRadius: '20px',
-                      fontSize: '11px'
+                      padding: '2px 8px', borderRadius: '20px', fontSize: '11px'
                     }}>
                       {unreadCount} ยังไม่อ่าน
                     </span>
@@ -146,10 +200,7 @@ function NotificationPage() {
               ) : (
                 notifications.map(n => (
                   <div key={n.id} className='notif-item' onClick={() => markRead(n.id)}>
-                    {!n.read
-                      ? <div className='unread-dot' />
-                      : <div className='read-dot' />
-                    }
+                    {!n.read ? <div className='unread-dot' /> : <div className='read-dot' />}
                     <div className={`notif-icon-wrap ${iconColorMap[n.type]}`}>
                       <i className={`ti ${n.icon}`} aria-hidden="true" />
                     </div>
@@ -157,7 +208,7 @@ function NotificationPage() {
                       <p className={`notif-title ${n.read ? 'read' : ''}`}>{n.title}</p>
                       <p className='notif-sub'>{n.sub}</p>
                     </div>
-                    <span className='notif-time'>{n.time}</span>
+                    <span className='notif-time'>{getRelativeTime(n.createdAt, now)}</span>
                   </div>
                 ))
               )}
@@ -170,32 +221,51 @@ function NotificationPage() {
             {/* นัดที่กำลังจะมาถึง */}
             <div className='notif-card'>
               <div className='notif-card-title'>นัดที่กำลังจะมาถึง</div>
-              {upcomingAppts.map((appt, i) => (
-                <div key={i} className='appt-item'>
-                  <div className='appt-time-block'>
-                    <p className='appt-time-main'>{appt.time}</p>
-                    <p className='appt-time-date'>{appt.date}</p>
+              {bookings.length === 0 ? (
+                <p style={{ color: '#555', fontSize: '13px' }}>ไม่มีนัดหมายที่กำลังจะมาถึง</p>
+              ) : (
+                bookings.map((b, i) => (
+                  <div key={b.id ?? i} className='appt-item'>
+                    <div className='appt-time-block'>
+                      <p className='appt-time-main'>{b.time}</p>
+                      <p className='appt-time-date'>วันนี้</p>
+                    </div>
+                    <div className='appt-divider' />
+                    <div className='appt-info'>
+                      <p className='appt-name'>{b.symptoms || 'นัดหมาย'}</p>
+                      <p className='appt-detail'>{b.doctor}</p>
+                    </div>
+                    <span className='badge badge-green'>ยืนยัน</span>
                   </div>
-                  <div className='appt-divider' />
-                  <div className='appt-info'>
-                    <p className='appt-name'>{appt.name}</p>
-                    <p className='appt-detail'>{appt.detail}</p>
-                  </div>
-                  <span className={`badge ${appt.badge}`}>{appt.label}</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* ตั้งค่าการแจ้งเตือน */}
             <div className='notif-card'>
               <div className='notif-card-title'>ตั้งค่าการแจ้งเตือน</div>
 
-              {[
-                { key: 'remind1day', label: 'เตือนก่อนนัด 1 วัน',   sub: 'แจ้งเตือนผ่าน Line / SMS' },
-                { key: 'remind2hr',  label: 'เตือนก่อนนัด 2 ชม.',   sub: 'แจ้งเตือนทาง Push notification' },
-                { key: 'medicine',   label: 'แจ้งเมื่อใบสั่งยาพร้อม', sub: 'แจ้งเตือนผ่านแอป' },
-                { key: 'result',     label: 'แจ้งเมื่อผลตรวจพร้อม', sub: 'แจ้งเตือนผ่านแอป' },
-              ].map(item => (
+              {/* แสดงสถานะ permission */}
+              {notifPermission === 'denied' && (
+                <div style={{
+                  background: '#3d0d0d', border: '1px solid #e57373',
+                  borderRadius: '8px', padding: '8px 12px', marginBottom: '12px',
+                  fontSize: '12px', color: '#e57373'
+                }}>
+                  ⚠ Browser ปฏิเสธการแจ้งเตือน — กรุณาเปิดอนุญาตในการตั้งค่าเบราว์เซอร์
+                </div>
+              )}
+              {notifPermission === 'granted' && (
+                <div style={{
+                  background: '#0d3d2a', border: '1px solid #1D9E75',
+                  borderRadius: '8px', padding: '8px 12px', marginBottom: '12px',
+                  fontSize: '12px', color: '#1D9E75'
+                }}>
+                  ✓ เปิดใช้งาน Browser Push Notification แล้ว
+                </div>
+              )}
+
+              {toggleItems.map(item => (
                 <div key={item.key} className='toggle-item'>
                   <div>
                     <p className='toggle-label'>{item.label}</p>
@@ -207,9 +277,7 @@ function NotificationPage() {
                     style={{ background: toggles[item.key] ? '#1D9E75' : '#2a2a2a' }}
                     aria-label={item.label}
                   >
-                    <div className='toggle-knob'
-                      style={{ left: toggles[item.key] ? '19px' : '3px' }}
-                    />
+                    <div className='toggle-knob' style={{ left: toggles[item.key] ? '19px' : '3px' }} />
                   </button>
                 </div>
               ))}

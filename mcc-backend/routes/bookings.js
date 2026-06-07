@@ -45,6 +45,19 @@ router.post('/', async (req, res) => {
   }
 })
 
+router.get('/slots', async (req, res) => {
+  const date = req.query.date || new Date().toISOString().split('T')[0]
+  try {
+    const [rows] = await db.query(
+      'SELECT doctor_id, slot_time_id, booked_count FROM slot_bookings WHERE booking_date = ?',
+      [date]
+    )
+    res.json(rows)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 router.get('/patient/:patientId', async (req, res) => {
   try {
     const [rows] = await db.query(

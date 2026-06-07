@@ -1,15 +1,28 @@
 import Sidebar from "../sidebar"
 import {patients} from '../../Mock/data.js'
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { currentUser, useAuth} from '../Context/AuthContext.js'
+import { getPatientHistory } from "../../api.js"
 import './Patient.css'
 
 function PatientHistory () {
 
     const [Patients, setPatient] = useState(patients)
     const { currentUser, bookings } = useAuth()
+    const [ Medicalhistory, setMedicalhistory] = useState([])
 
-    const Medicalhistory = currentUser?.history || []
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (!currentUser) return
+            const data = await getPatientHistory(currentUser.id)
+            setMedicalhistory(data)
+        }
+        fetchHistory()
+    }, [currentUser])
+
+    const Latestprescription = Medicalhistory?.[0]?.medicine || []
+
+    // const Medicalhistory = currentUser?.history || []
 
     // รวม mock history + การจองใหม่เข้าด้วยกัน
   const allHistory = [
@@ -28,7 +41,7 @@ function PatientHistory () {
             ...Medicalhistory,                // ← ประวัติเดิมจาก mock
         ]
 
-    const Latestprescription = Medicalhistory.flatMap(h => h.medicine)
+    // const Latestprescription = Medicalhistory.flatMap(h => h.medicine)
 
     console.log('++++++++',allHistory)
     console.log('Whoooo are uuuu:',currentUser)
@@ -57,7 +70,7 @@ function PatientHistory () {
                     <div className="dot" />
                     <p>{currentUser?.sex}</p>
                     <div className="dot" />
-                    <p>กรุ๊ปเลือด {currentUser?.blood}</p>
+                    <p>กรุ๊ปเลือด {currentUser?.blood_type}</p>
                     </div>
                 </div>
                 <div className="patient-badges">
@@ -92,7 +105,7 @@ function PatientHistory () {
                         </div>
                         <div className="health-item">
                         <p>ความดัน</p>
-                        <p>{currentUser?.bloodPressure}</p>
+                        <p>{currentUser?.blood_pressure}</p>
                         </div>
                         <div className="health-item">
                         <p>ชีพจร</p>
@@ -100,7 +113,7 @@ function PatientHistory () {
                         </div>
                         <div className="health-item">
                         <p>อุณหภูมิ</p>
-                        <p>{currentUser?.temp} °C</p>
+                        <p>{currentUser?.temperature} °C</p>
                         </div>
                     </div>
                     <hr className="divider" />
@@ -116,17 +129,22 @@ function PatientHistory () {
                     ) : (
                         Latestprescription.map((med, index) => (
                         <div key={index} className="med-item">
-                            <p className="med-name">{med.name}</p>
-                            <p className="med-dose">{med.dose}</p>
+                            <p className="med-name">{med.medicine_name}</p>
+                            <p className="med-dose">{med.dosage}</p>
                         </div>
                         ))
                     )}
 
-                    {Medicalhistory[0]?.nextAppointment === '-' ? (
+                    {Medicalhistory?.[0]?.next_appointment === '-' || !Medicalhistory?.[0]?.next_appointment ? (
                         <p className="no-appt">ไม่มีนัดติดตามอาการเพิ่มเติม</p>
                     ) : (
                         <div className="next-appt">
-                        📅 นัดติดตามอาการ: {Medicalhistory[0]?.nextAppointment}
+                        📅 นัดติดตามอาการ: {new Date(Medicalhistory[0].next_appointment).toLocaleString('th-TH',{
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                           
+                        })}
                         </div>
                     )}
                     </div>
