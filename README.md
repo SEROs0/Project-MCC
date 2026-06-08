@@ -1,9 +1,11 @@
 #โปรเจคนี้ยังอยู่ในขั้นตอน Development อยู่ / Branch Developer จะเป็น Branch หลักสำหรับการพัฒนาซอร์สโค้ด ก่อนที่จะทำการ Merge หรือ Pull Request ขึ้นไปยัง branch main
 
 ---
-# 🏥 MedCare Clinic — Full Stack Web Application + AI (Claude Code)
+# 🏥 MedCare Clinic — ระบบจองคิวและบริหารจัดการคลินิกออนไลน์
 
-ระบบจองคิวและบริหารจัดการคลินิกออนไลน์ พัฒนาด้วย React.js
+ระบบจัดการคลินิกแบบครบวงจร พัฒนาด้วย React.js + Express.js + MySQL  
+รองรับทั้งฝั่งผู้ป่วย (จองคิว, ดูประวัติรักษา) และฝั่งแพทย์ (จัดการคิว, บันทึกผลการรักษา)
+
 
 ---
 
@@ -17,33 +19,73 @@ MedCare Clinic เป็น Web Application สำหรับระบบจอ
 
 ## ⚙️ การติดตั้ง
 
-**1. Clone โปรเจกต์:**
+### 1. Clone โปรเจกต์
+
 ```bash
-git clone https://github.com/username/mcc-frontend.git
-cd mcc-frontend
+git clone https://github.com/SEROs0/Project-MCC.git
+cd Project-MCC
 ```
 
-**2. ติดตั้ง dependencies:**
+### 2. ติดตั้ง Frontend
+
 ```bash
+cd mcc-frontend
 npm install
 ```
 
-**3. รันโปรเจกต์:**
+### 3. ติดตั้ง Backend
+
 ```bash
+cd mcc-backend
+npm install
+```
+
+### 4. ตั้งค่า Environment Variables
+
+สร้างไฟล์ `.env` ใน `mcc-backend/`:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=mcc_project
+PORT=8080
+```
+
+รันโปรเจกต์
+
+เปิด 2 terminal แยกกัน:
+
+```bash
+# Terminal 1 — Backend
+cd mcc-backend
+node server.js
+
+# Terminal 2 — Frontend
+cd mcc-frontend
 npm start
 ```
 
-**4. เปิดใน browser:**
+## 🔑 ข้อมูล Login สำหรับทดสอบ
 
----
+### ผู้ป่วย (เข้าด้วยหมายเลข HN)
 
-## 📖 วิธีใช้งาน
+| HN | ชื่อ | หมายเหตุ |
+|----|------|---------|
+| `HN0001` | สมหมาย ใจดี | ข้อมูลปกติ |
+| `HN0002` | วิภา ดีงาม | มีประวัติแพ้ยา (เพนิซิลิน) |
+| `HN0003` | ประสิทธิ์ มั่นคง | โรคประจำตัว เบาหวาน + ความดัน |
+| `HN0004` | นภา สว่างใจ | แพ้แอสไพริน, มีไมเกรน |
+| `HN0005` | สุรชัย พลังดี | ข้อมูลปกติ |
 
-**1. เข้าสู่ระบบ**
-```bash
-2026-00182 (สมหมาย ใจดี)
-```
+### แพทย์ (เข้าที่ `/doctor-login`)
+
+| Employee ID | Password | ชื่อ | แผนก |
+|-------------|----------|------|------|
+| `DR001` | `doctor001` | นพ.สมชาย รักษาดี | เวชกรรมทั่วไป |
+| `DR002` | `doctor002` | พญ.วิภา สุขภาพดี | อายุรกรรม |
+| `DR003` | `doctor003` | นพ.ประสิทธิ์ กระดูกดี | กระดูกและข้อ |
 
 ## 👨‍💻 ผู้พัฒนา
 
-พัฒนาเพื่อเป็น Portfolio Project แสดงทักษะ React.js Frontend Development
+พัฒนาเพื่อเป็น Portfolio Project แสดงทักษะ Full Stack Web Development (React + Node.js + MySQL) + AI (Claude Code)
