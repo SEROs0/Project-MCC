@@ -1,52 +1,93 @@
 import Sidebar from "../sidebar"
-import {patients} from '../../Mock/data.js'
 import { useEffect, useState } from "react"
-import { currentUser, useAuth} from '../Context/AuthContext.js'
-import { getPatientHistory } from "../../api.js"
+import { useAuth} from '../Context/AuthContext.js'
+import { getPatientHistory, getBookings, getPatientByHn } from "../../api.js"
 import './Patient.css'
 
 function PatientHistory () {
 
-    const [Patients, setPatient] = useState(patients)
-    const { currentUser, bookings } = useAuth()
-    const [ Medicalhistory, setMedicalhistory] = useState([])
+    const { currentUser } = useAuth()
+    const [Medicalhistory, setMedicalhistory] = useState([])
+    const [dbBookings, setDbBookings]         = useState([])
+    const [freshPatient, setFreshPatient]     = useState(null)
+    const [selectedHistory, setSelectedHistory] = useState(null)
 
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchAll = async () => {
             if (!currentUser) return
-            const data = await getPatientHistory(currentUser.id)
-            setMedicalhistory(data)
+            const [historyData, bookingData, patientData] = await Promise.all([
+                getPatientHistory(currentUser.id),
+                getBookings(currentUser.id),
+                getPatientByHn(currentUser.hn),
+            ])
+            setMedicalhistory(Array.isArray(historyData) ? historyData : [])
+            setDbBookings(Array.isArray(bookingData) ? bookingData : [])
+            if (patientData?.id) setFreshPatient(patientData)
         }
-        fetchHistory()
+        fetchAll()
     }, [currentUser])
 
     const Latestprescription = Medicalhistory?.[0]?.medicine || []
 
-    // const Medicalhistory = currentUser?.history || []
+    // bookings ที่มี medical_history บันทึกแล้ว → ไม่แสดงซ้ำ
+    const treatedBookingIds = new Set(Medicalhistory.map(h => h.booking_id).filter(Boolean))
 
-    // รวม mock history + การจองใหม่เข้าด้วยกัน
-  const allHistory = [
-            ...bookings?.map(b => ({           // ← แปลง booking เป็น format เดียวกับ history
-            id:              b.id,
-            date:            b.date,
-            doctor:          b.doctor,
-            dept:            '-',
-            diagnosis:       b.diagnosis,
-            symptoms:        b.symptoms || '-',
-            medicine:        b.medicine,
-            nextAppointment: b.nextAppointment,
-            status:          b.status,
-            isNew:           true,          // ← flag ว่าเป็นการจองใหม่
-            })) || [],
-            ...Medicalhistory,                // ← ประวัติเดิมจาก mock
-        ]
+    const thaiDate = (raw) => {
+        const d = new Date(raw)
+        return isNaN(d) ? '-' : d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+    }
 
-    // const Latestprescription = Medicalhistory.flatMap(h => h.medicine)
+    const pendingHistory = dbBookings
+        .filter(b => !treatedBookingIds.has(b.id))
+        .map(b => ({
+            id:     b.id,
+            date:   thaiDate(b.booking_date),
+            doctor: b.doctor_name,
+            title:  b.symptom || '-',
+            diagnosis: null,
+            status: b.status,
+            isNew:  b.status !== 'เสร็จสิ้น',
+        }))
 
-    console.log('++++++++',allHistory)
-    console.log('Whoooo are uuuu:',currentUser)
-    console.log('history',Medicalhistory)
-    console.log('medicine',Latestprescription)
+    const completedHistory = Medicalhistory.map(h => ({
+        id:              `mh_${h.id}`,
+        date:            thaiDate(h.visit_date),
+        doctor:          h.doctor_name,
+        title:           h.booking_symptom || h.symptoms || '-',
+        diagnosis:       h.diagnosis || null,
+        medicine:        h.medicine || [],
+        nextAppointment: h.next_appointment,
+        status:          'เสร็จสิ้น',
+        isNew:           false,
+    }))
+
+    const renderItem = (history, index) => (
+        <div key={history.id ?? index} className='tl-item'>
+            <div className='tl-left'>
+                <div className={`tl-dot ${index > 0 ? 'old' : ''}`} />
+            </div>
+            <div className='tl-body'>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                    <p className='tl-date'>{history.date}</p>
+                    {history.isNew && (
+                    <span style={{ background: '#0d3d2a', color: '#1D9E75', border: '0.5px solid #1D9E75', padding: '1px 7px', borderRadius: '20px', fontSize: '10px' }}>ใหม่</span>
+                    )}
+                    {history.status && (
+                    <span style={{
+                        background: history.status === 'รอตรวจ' ? '#3d2a0d' : history.status === 'กำลังตรวจ' ? '#0d2a3d' : '#0d3d2a',
+                        color:      history.status === 'รอตรวจ' ? '#f0a500' : history.status === 'กำลังตรวจ' ? '#4fc3f7' : '#1D9E75',
+                        padding: '1px 7px', borderRadius: '20px', fontSize: '10px'
+                    }}>{history.status}</span>
+                    )}
+                </div>
+                <p className='tl-title'>{history.title}</p>
+                <p className='tl-meta'>{history.doctor}</p>
+                {history.diagnosis && (
+                <p className='tl-diagnosis'>วินิจฉัย: {history.diagnosis}</p>
+                )}
+            </div>
+        </div>
+    )
 
     return (
         <>
@@ -89,7 +130,16 @@ function PatientHistory () {
 
                     {/* ข้อมูลสุขภาพ */}
                     <div className="card">
-                    <h3>ข้อมูลสุขภาพ</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+                        <h3 style={{ margin: 0 }}>ข้อมูลสุขภาพ</h3>
+                        {(freshPatient ?? currentUser)?.updated_at && (
+                        <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
+                            อัปเดตล่าสุด {new Date((freshPatient ?? currentUser).updated_at).toLocaleDateString('th-TH', {
+                            day: 'numeric', month: 'short', year: 'numeric'
+                            })}
+                        </p>
+                        )}
+                    </div>
                     <div className="box_information_heal">
                         <div className="health-item">
                         <p>น้ำหนัก</p>
@@ -150,53 +200,109 @@ function PatientHistory () {
                     </div>
                 </div>
 
-                {/* Right Column — ประวัติการรักษา */}
+                {/* นัดหมายที่รอดำเนินการ */}
                 <div className="card">
-                    <h3>ประวัติการรักษา</h3>
+                    <h3>นัดหมายที่รอดำเนินการ</h3>
                     <div className="timeline">
-                    {allHistory.length === 0 ? (
-                        <p style={{ color: '#555', fontSize: '13px' }}>ยังไม่มีประวัติการรักษา</p>
+                    {pendingHistory.length === 0 ? (
+                        <p style={{ color: '#444', fontSize: '12px' }}>ไม่มีนัดหมายที่รอดำเนินการ</p>
                     ) : (
-                        allHistory.map((history, index) => (
-                        <div key={history.id ?? index} className='tl-item'>
-                            <div className='tl-left'>
-                            <div className={`tl-dot ${index > 0 ? 'old' : ''}`} />
-                            </div>
-                            <div className='tl-body'>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                                <p className='tl-date'>{history.date}</p>
-                                {history.isNew && (  // ← แสดง badge "ใหม่" เฉพาะที่เพิ่งจอง
-                                <span style={{
-                                    background: '#0d3d2a', color: '#1D9E75',
-                                    border: '0.5px solid #1D9E75',
-                                    padding: '1px 7px', borderRadius: '20px',
-                                    fontSize: '10px'
-                                }}>ใหม่</span>
-                                )}
-                                {history.status && (
-                                <span style={{
-                                    background: history.status === 'รอตรวจ' ? '#3d2a0d' : '#0d3d2a',
-                                    color:      history.status === 'รอตรวจ' ? '#f0a500' : '#1D9E75',
-                                    padding: '1px 7px', borderRadius: '20px',
-                                    fontSize: '10px'
-                                }}>{history.status}</span>
-                                )}
-                            </div>
-                            <p className='tl-title'>{history.diagnosis}</p>
-                            <p className='tl-meta'>{history.doctor}</p>
-                            {history.symptoms !== '-' && (
-                                <p className='tl-diagnosis'>{history.symptoms}</p>
-                            )}
-                            </div>
-                        </div>
-                        ))
+                        pendingHistory.map((h, i) => renderItem(h, i))
                     )}
                     </div>
                 </div>
 
                 </div>
+
+                {/* ประวัติการรักษาเสร็จสิ้น — full width grid */}
+                <div className="card history-section">
+                    <h3>ประวัติการรักษาเสร็จสิ้น</h3>
+                    {completedHistory.length === 0 ? (
+                        <p style={{ color: '#444', fontSize: '12px' }}>ยังไม่มีประวัติการรักษา</p>
+                    ) : (
+                        <div className="history-grid">
+                        {completedHistory.map((h, i) => (
+                            <div key={h.id ?? i} className="history-card" onClick={() => setSelectedHistory(h)} style={{ cursor: 'pointer' }}>
+                                <div className="hc-header">
+                                    <span className="hc-date">{h.date}</span>
+                                    <span className="hc-status">เสร็จสิ้น</span>
+                                </div>
+                                <p className="hc-title">{h.title}</p>
+                                <p className="hc-doctor">{h.doctor}</p>
+                                {h.diagnosis && (
+                                    <p className="hc-diagnosis">วินิจฉัย: {h.diagnosis}</p>
+                                )}
+                            </div>
+                        ))}
+                        </div>
+                    )}
+                </div>
             </div>
             </div>
+
+            {/* Modal รายละเอียดประวัติการรักษา */}
+            {selectedHistory && (
+                <div onClick={() => setSelectedHistory(null)} style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 1000, padding: '20px'
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: '#1e1e1e', border: '0.5px solid #2a2a2a',
+                        borderRadius: '14px', padding: '24px', width: '100%',
+                        maxWidth: '480px', maxHeight: '85vh', overflowY: 'auto'
+                    }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                            <div>
+                                <p style={{ color: '#555', fontSize: '11px', marginBottom: '4px' }}>{selectedHistory.date}</p>
+                                <h3 style={{ color: 'white', fontSize: '16px', fontWeight: 600, margin: 0 }}>{selectedHistory.title}</h3>
+                                <p style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>{selectedHistory.doctor}</p>
+                            </div>
+                            <button onClick={() => setSelectedHistory(null)} style={{
+                                background: 'transparent', border: 'none', color: '#555',
+                                fontSize: '20px', cursor: 'pointer', lineHeight: 1, padding: '2px 6px'
+                            }}>×</button>
+                        </div>
+
+                        {/* การวินิจฉัย */}
+                        {selectedHistory.diagnosis && (
+                            <div style={{ marginBottom: '16px' }}>
+                                <p style={{ color: '#555', fontSize: '11px', marginBottom: '6px' }}>การวินิจฉัย</p>
+                                <p style={{ color: 'white', fontSize: '13px', padding: '10px 14px', background: '#252525', borderRadius: '8px', borderLeft: '2px solid #1D9E75' }}>
+                                    {selectedHistory.diagnosis}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* ใบสั่งยา */}
+                        {selectedHistory.medicine?.length > 0 && (
+                            <div style={{ marginBottom: '16px' }}>
+                                <p style={{ color: '#555', fontSize: '11px', marginBottom: '8px' }}>ใบสั่งยา ({selectedHistory.medicine.length} รายการ)</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {selectedHistory.medicine.map((m, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 14px', background: '#252525', borderRadius: '8px' }}>
+                                            <p style={{ color: 'white', fontSize: '13px' }}>{m.medicine_name}</p>
+                                            <p style={{ color: '#888', fontSize: '11px' }}>{m.dosage}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* นัดติดตาม */}
+                        {selectedHistory.nextAppointment ? (
+                            <div style={{ padding: '10px 14px', background: '#0d3d2a', border: '0.5px solid #1D9E75', borderRadius: '8px', fontSize: '12px', color: '#1D9E75' }}>
+                                📅 นัดติดตามอาการ: {new Date(selectedHistory.nextAppointment).toLocaleString('th-TH', {
+                                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                })}
+                            </div>
+                        ) : (
+                            <p style={{ color: '#444', fontSize: '12px', textAlign: 'center' }}>ไม่มีนัดติดตามอาการ</p>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
 )
 }

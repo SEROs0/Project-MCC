@@ -2,6 +2,8 @@ const express = require('express')
 const cors    = require('cors')
 require('dotenv').config()
 
+require('./cron')
+
 const app = express()
 
 // Middleware
@@ -15,6 +17,7 @@ app.use('/api/doctors',       require('./routes/doctors'))
 app.use('/api/bookings',      require('./routes/bookings'))
 app.use('/api/notifications', require('./routes/notifications'))
 app.use('/api/timeslots',     require('./routes/timeslots'))
+app.use('/api/doctor-portal', require('./routes/doctor-portal'))
 
 // รัน server
 const PORT = process.env.PORT || 8080

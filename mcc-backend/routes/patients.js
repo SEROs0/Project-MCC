@@ -15,9 +15,10 @@ router.get('/:hn', async (req, res) => {
 router.get('/:id/history', async (req, res) => {
   try {
     const [history] = await db.query(
-      `SELECT mh.*, d.name as doctor_name
+      `SELECT mh.*, d.name as doctor_name, b.symptom as booking_symptom
        FROM medical_history mh
        JOIN doctors d ON mh.doctor_id = d.id
+       JOIN bookings b ON mh.booking_id = b.id
        WHERE mh.patient_id = ?
        ORDER BY mh.visit_date DESC`,
       [req.params.id]

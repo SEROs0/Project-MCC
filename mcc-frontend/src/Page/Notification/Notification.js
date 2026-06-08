@@ -2,6 +2,19 @@ import './Notification.css'
 import { useState, useEffect } from 'react'
 import Sidebar from '../sidebar'
 import { useAuth } from '../Context/AuthContext'
+import { getNotifications, markAsRead as markNotifAsRead } from '../../api'
+import {
+  IconCalendarCheck, IconClock, IconAlertCircle,
+  IconFileDescription, IconBell,
+} from '@tabler/icons-react'
+
+const ICON_MAP = {
+  'ti-calendar-check': IconCalendarCheck,
+  'ti-clock':          IconClock,
+  'ti-alert-circle':   IconAlertCircle,
+  'ti-file-text':      IconFileDescription,
+  'ti-bell':           IconBell,
+}
 
 const getRelativeTime = (ts, now) => {
   const diff = Math.floor((now - ts) / 1000)
@@ -14,8 +27,13 @@ const getRelativeTime = (ts, now) => {
 
 const DEFAULT_TOGGLES = { remind1day: true, remind2hr: true }
 
+const DB_TYPE_MAP = {
+  booking: { uiType: 'green', icon: 'ti-calendar-check' },
+  result:  { uiType: 'blue',  icon: 'ti-file-text' },
+}
+
 function NotificationPage() {
-  const { bookings } = useAuth()
+  const { bookings, currentUser } = useAuth()
   const [now, setNow] = useState(Date.now())
 
   const [readIds, setReadIds] = useState(() => {
@@ -83,51 +101,52 @@ function NotificationPage() {
     return () => timers.forEach(clearTimeout)
   }, [bookings, toggles, notifPermission])
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'n1', type: 'amber', icon: 'ti-clock',
-      title: 'เตือนนัดหมายพรุ่งนี้',
-      sub: 'มีนัด 09:00 น. — นพ. สมชาย',
-      createdAt: Date.now() - 3600000, read: readIds.has('n1')
-    },
-  ])
+  const [notifications, setNotifications] = useState([])
 
+  // ดึงการแจ้งเตือนจาก DB
   useEffect(() => {
-    if (!bookings || !Array.isArray(bookings)) return
-    const newNotifs = bookings.map(b => ({
-      id:        b.id,
-      type:      'green',
-      icon:      'ti-calendar-check',
-      title:     'จองคิวสำเร็จแล้ว',
-      sub:       `${b.doctor} — ${b.date} เวลา ${b.time} น.`,
-      createdAt: Number(b.id) || Date.now(),
-      read:      readIds.has(b.id),
-    }))
-    setNotifications(prev => {
-      const nonBookingNotifs = prev.filter(n => typeof n.id === 'string')
-      return [...newNotifs, ...nonBookingNotifs]
+    if (!currentUser) return
+    getNotifications(currentUser.id).then(data => {
+      if (!Array.isArray(data)) return
+      setNotifications(data.map(n => {
+        const map = DB_TYPE_MAP[n.type] || { uiType: 'amber', icon: 'ti-bell' }
+        return {
+          id:        n.id,
+          type:      map.uiType,
+          icon:      map.icon,
+          title:     n.title,
+          sub:       n.message,
+          createdAt: new Date(n.created_at).getTime(),
+          read:      !!n.is_read || readIds.has(n.id),
+          fromDb:    true,
+        }
+      }).sort((a, b) => b.createdAt - a.createdAt))
     })
-  }, [bookings])
+  }, [currentUser])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
   const markAllRead = () => {
-    setNotifications(prev => {
-      const allIds = prev.map(n => n.id)
-      const newSet = new Set([...readIds, ...allIds])
-      localStorage.setItem('readNotifIds', JSON.stringify([...newSet]))
-      setReadIds(newSet)
-      return prev.map(n => ({ ...n, read: true }))
-    })
+    const unread = notifications.filter(n => !n.read)
+    unread.filter(n => n.fromDb).forEach(n => markNotifAsRead(n.id))
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    const allIds = notifications.map(n => n.id)
+    const newSet = new Set([...readIds, ...allIds])
+    localStorage.setItem('readNotifIds', JSON.stringify([...newSet]))
+    setReadIds(newSet)
   }
 
   const markRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    setReadIds(prev => {
-      const next = new Set([...prev, id])
-      localStorage.setItem('readNotifIds', JSON.stringify([...next]))
-      return next
-    })
+    const notif = notifications.find(n => n.id === id)
+    if (notif && !notif.read) {
+      if (notif.fromDb) markNotifAsRead(id)
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+      setReadIds(prev => {
+        const next = new Set([...prev, id])
+        localStorage.setItem('readNotifIds', JSON.stringify([...next]))
+        return next
+      })
+    }
   }
 
   const toggleSwitch = async (key) => {
@@ -194,15 +213,15 @@ function NotificationPage() {
 
               {notifications.length === 0 ? (
                 <div className='empty-state'>
-                  <i className='ti ti-bell-off' style={{ fontSize: '32px', marginBottom: '8px', display: 'block' }} />
-                  ไม่มีการแจ้งเตือน
+                  <IconBell size={32} style={{ marginBottom: '8px', opacity: 0.3 }} />
+                  <br />ไม่มีการแจ้งเตือน
                 </div>
               ) : (
                 notifications.map(n => (
                   <div key={n.id} className='notif-item' onClick={() => markRead(n.id)}>
                     {!n.read ? <div className='unread-dot' /> : <div className='read-dot' />}
                     <div className={`notif-icon-wrap ${iconColorMap[n.type]}`}>
-                      <i className={`ti ${n.icon}`} aria-hidden="true" />
+                      {(() => { const Icon = ICON_MAP[n.icon] || IconBell; return <Icon size={18} /> })()}
                     </div>
                     <div className='notif-body'>
                       <p className={`notif-title ${n.read ? 'read' : ''}`}>{n.title}</p>
@@ -221,10 +240,10 @@ function NotificationPage() {
             {/* นัดที่กำลังจะมาถึง */}
             <div className='notif-card'>
               <div className='notif-card-title'>นัดที่กำลังจะมาถึง</div>
-              {bookings.length === 0 ? (
+              {bookings.filter(b => b.status !== 'เสร็จสิ้น').length === 0 ? (
                 <p style={{ color: '#555', fontSize: '13px' }}>ไม่มีนัดหมายที่กำลังจะมาถึง</p>
               ) : (
-                bookings.map((b, i) => (
+                bookings.filter(b => b.status !== 'เสร็จสิ้น').map((b, i) => (
                   <div key={b.id ?? i} className='appt-item'>
                     <div className='appt-time-block'>
                       <p className='appt-time-main'>{b.time}</p>

@@ -12,7 +12,7 @@ const mapDbBooking = (b) => ({
   time:            b.slot_time ? b.slot_time.substring(0, 5) : '',
   symptoms:        b.symptom || '-',
   note:            b.note || '',
-  status:          'รอตรวจ',
+  status:          b.status || 'รอตรวจ',
   diagnosis:       '-',
   medicine:        [],
   nextAppointment: null,
@@ -74,8 +74,26 @@ export function AuthProvider({ children }) {
     setBookings(prev => [newBooking, ...prev])
   }
 
+  const [currentDoctor, setCurrentDoctor] = useState(() => {
+    const saved = localStorage.getItem('currentDoctor')
+    return saved ? JSON.parse(saved) : null
+  })
+
+  useEffect(() => {
+    if (currentDoctor) {
+      localStorage.setItem('currentDoctor', JSON.stringify(currentDoctor))
+    } else {
+      localStorage.removeItem('currentDoctor')
+    }
+  }, [currentDoctor])
+
+  const doctorLogout = () => {
+    setCurrentDoctor(null)
+    localStorage.removeItem('currentDoctor')
+  }
+
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, logout, addBooking, bookings }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, logout, addBooking, bookings, currentDoctor, setCurrentDoctor, doctorLogout }}>
       {children}
     </AuthContext.Provider>
   )
