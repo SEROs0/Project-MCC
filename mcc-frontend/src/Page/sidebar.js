@@ -2,8 +2,6 @@ import './sidebar.css'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './Context/AuthContext'
 import { Heart } from 'lucide-react'
-import LoginPage from './Login/Login'
-import App from './App'
 
 function Sidebar() {
   const navigate = useNavigate()
@@ -24,7 +22,7 @@ function Sidebar() {
     : 'ผป'
 
   const menuItems = [
-    { path: '/',          icon: 'ti-calendar-plus',    label: 'จองคิว' },
+    { path: '/main',          icon: 'ti-calendar-plus',    label: 'จองคิว' },
     { path: '/patient',   icon: 'ti-clipboard-list',   label: 'ประวัติการรักษา' },
     { path: '/notification', icon: 'ti-bell',          label: 'แจ้งเตือน' },
   ]
