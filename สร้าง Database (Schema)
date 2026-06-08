@@ -1,0 +1,149 @@
+นำ SQL ด้านล่างไปรันใน MySQL:
+
+```sql
+CREATE DATABASE IF NOT EXISTS mcc_project
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE mcc_project;
+
+-- ตารางแผนก
+CREATE TABLE departments (
+  id    INT AUTO_INCREMENT PRIMARY KEY,
+  name  VARCHAR(100) NOT NULL
+);
+
+-- ตารางผู้ป่วย
+CREATE TABLE patients (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  hn             VARCHAR(20) UNIQUE NOT NULL,
+  name           VARCHAR(100) NOT NULL,
+  age            INT,
+  sex            VARCHAR(10),
+  blood_type     VARCHAR(5),
+  allergy        VARCHAR(255) DEFAULT '-',
+  congenital     VARCHAR(255) DEFAULT '-',
+  status         VARCHAR(50)  DEFAULT 'ปกติ',
+  weight         DECIMAL(5,2),
+  height         DECIMAL(5,2),
+  bmi            DECIMAL(5,2),
+  blood_pressure VARCHAR(20),
+  pulse          INT,
+  temperature    DECIMAL(4,1),
+  updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ตารางแพทย์
+CREATE TABLE doctors (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  name           VARCHAR(100) NOT NULL,
+  employee_id    VARCHAR(20)  UNIQUE NOT NULL,
+  password       VARCHAR(255) NOT NULL,
+  specialty      VARCHAR(100),
+  department_id  INT,
+  capacity       INT DEFAULT 5,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id)
+);
+
+-- ตารางช่วงเวลานัด
+CREATE TABLE time_slots (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  slot_time  TIME NOT NULL
+);
+
+-- ตารางการจองคิว
+CREATE TABLE bookings (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  patient_id     INT NOT NULL,
+  doctor_id      INT NOT NULL,
+  slot_time_id   INT NOT NULL,
+  booking_date   DATE NOT NULL,
+  queue_number   INT,
+  symptom        TEXT,
+  note           TEXT,
+  status         ENUM('รอตรวจ','กำลังตรวจ','เสร็จสิ้น') DEFAULT 'รอตรวจ',
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (patient_id)   REFERENCES patients(id),
+  FOREIGN KEY (doctor_id)    REFERENCES doctors(id),
+  FOREIGN KEY (slot_time_id) REFERENCES time_slots(id)
+);
+
+-- ตารางนับจำนวนการจองต่อ slot
+CREATE TABLE slot_bookings (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  doctor_id     INT NOT NULL,
+  slot_time_id  INT NOT NULL,
+  booking_date  DATE NOT NULL,
+  booked_count  INT DEFAULT 0,
+  FOREIGN KEY (doctor_id)    REFERENCES doctors(id),
+  FOREIGN KEY (slot_time_id) REFERENCES time_slots(id)
+);
+
+-- ตารางประวัติการรักษา
+CREATE TABLE medical_history (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  patient_id       INT NOT NULL,
+  doctor_id        INT NOT NULL,
+  booking_id       INT,
+  visit_date       DATE NOT NULL,
+  diagnosis        TEXT,
+  symptoms         TEXT,
+  next_appointment DATETIME,
+  FOREIGN KEY (patient_id) REFERENCES patients(id),
+  FOREIGN KEY (doctor_id)  REFERENCES doctors(id),
+  FOREIGN KEY (booking_id) REFERENCES bookings(id)
+);
+
+-- ตารางใบสั่งยา
+CREATE TABLE prescriptions (
+  id                  INT AUTO_INCREMENT PRIMARY KEY,
+  medical_history_id  INT NOT NULL,
+  medicine_name       VARCHAR(200),
+  dosage              VARCHAR(200),
+  FOREIGN KEY (medical_history_id) REFERENCES medical_history(id)
+);
+
+-- ตารางการแจ้งเตือน
+CREATE TABLE notifications (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  patient_id  INT NOT NULL,
+  type        VARCHAR(50),
+  title       VARCHAR(200),
+  message     TEXT,
+  is_read     TINYINT(1) DEFAULT 0,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (patient_id) REFERENCES patients(id)
+);
+```
+
+### 6. เพิ่มข้อมูลเริ่มต้น (Seed Data)
+
+```sql
+USE mcc_project;
+
+-- แผนก
+INSERT INTO departments (name) VALUES
+  ('เวชกรรมทั่วไป'),
+  ('อายุรกรรม'),
+  ('กระดูกและข้อ'),
+  ('กุมารเวชกรรม');
+
+-- ช่วงเวลานัด
+INSERT INTO time_slots (slot_time) VALUES
+  ('08:00:00'), ('09:00:00'), ('10:00:00'), ('11:00:00'),
+  ('13:00:00'), ('14:00:00'), ('15:00:00'), ('16:00:00');
+
+-- แพทย์  (password เก็บเป็น plain text)
+INSERT INTO doctors (name, employee_id, password, specialty, department_id, capacity) VALUES
+  ('นพ.สมชาย รักษาดี',   'DR001', 'doctor001', 'เวชกรรมทั่วไป', 1, 10),
+  ('พญ.วิภา สุขภาพดี',   'DR002', 'doctor002', 'อายุรกรรม',     2, 10),
+  ('นพ.ประสิทธิ์ กระดูกดี', 'DR003', 'doctor003', 'กระดูกและข้อ', 3, 8);
+
+-- ผู้ป่วย
+INSERT INTO patients (hn, name, age, sex, blood_type, allergy, congenital, status, weight, height, bmi, blood_pressure, pulse, temperature) VALUES
+  ('HN0001', 'สมหมาย ใจดี',    35, 'ชาย',   'O',  '-',          '-',               'ปกติ', 70.0, 172.0, 23.67, '120/80', 72, 36.5),
+  ('HN0002', 'วิภา ดีงาม',      28, 'หญิง',  'A',  'เพนิซิลิน', '-',               'ปกติ', 55.0, 160.0, 21.48, '110/70', 68, 36.8),
+  ('HN0003', 'ประสิทธิ์ มั่นคง', 52, 'ชาย',   'B',  '-',          'เบาหวาน, ความดัน', 'ติดตาม', 82.0, 168.0, 29.04, '140/90', 80, 37.0),
+  ('HN0004', 'นภา สว่างใจ',     45, 'หญิง',  'AB', 'แอสไพริน',  'ไมเกรน',          'ปกติ', 60.0, 158.0, 24.03, '118/76', 74, 36.6),
+  ('HN0005', 'สุรชัย พลังดี',   19, 'ชาย',   'O',  '-',          '-',               'ปกติ', 65.0, 175.0, 21.22, '115/75', 70, 36.4);
+```
