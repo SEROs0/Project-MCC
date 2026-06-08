@@ -88,4 +88,4 @@ npm start
 
 ## 👨‍💻 ผู้พัฒนา
 
-พัฒนาเพื่อเป็น Portfolio Project แสดงทักษะ Full Stack Web Development (React + Node.js + MySQL) + AI (Claude Code)
+พัฒนาเพื่อเป็น Portfolio Project แสดงทักษะ Full Stack Web Development (React + Node.js + MySQL)
