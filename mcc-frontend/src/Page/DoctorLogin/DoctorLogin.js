@@ -25,7 +25,7 @@ function DoctorLogin() {
     setLoading(false)
     if (data.success) {
       setCurrentDoctor(data.doctor)
-      navigate('/doctor/queue')
+      navigate('/doctor/dashboard')
     } else {
       setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
     }

@@ -75,4 +75,25 @@ router.get('/patient/:patientId', async (req, res) => {
   }
 })
 
+router.patch('/:id/cancel', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM bookings WHERE id = ?', [req.params.id])
+    if (rows.length === 0) return res.status(404).json({ message: 'ไม่พบการจอง' })
+    if (rows[0].status !== 'รอตรวจ') return res.status(400).json({ message: 'ยกเลิกได้เฉพาะคิวที่ยังรอตรวจเท่านั้น' })
+
+    await db.query("UPDATE bookings SET status = 'ยกเลิก' WHERE id = ?", [req.params.id])
+
+    // ลด booked_count กลับ
+    await db.query(
+      `UPDATE slot_bookings SET booked_count = GREATEST(booked_count - 1, 0)
+       WHERE doctor_id = ? AND slot_time_id = ? AND booking_date = ?`,
+      [rows[0].doctor_id, rows[0].slot_time_id, rows[0].booking_date]
+    )
+
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 module.exports = router

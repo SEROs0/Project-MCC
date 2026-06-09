@@ -1,7 +1,7 @@
 import Sidebar from "../sidebar"
 import { useEffect, useState } from "react"
 import { useAuth} from '../Context/AuthContext.js'
-import { getPatientHistory, getBookings, getPatientByHn } from "../../api.js"
+import { getPatientHistory, getBookings, getPatientByHn, cancelBooking } from "../../api.js"
 import './Patient.css'
 
 function PatientHistory () {
@@ -11,6 +11,7 @@ function PatientHistory () {
     const [dbBookings, setDbBookings]         = useState([])
     const [freshPatient, setFreshPatient]     = useState(null)
     const [selectedHistory, setSelectedHistory] = useState(null)
+    const [cancelling, setCancelling]           = useState(null)
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -37,8 +38,20 @@ function PatientHistory () {
         return isNaN(d) ? '-' : d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
     }
 
+    const handleCancel = async (bookingId) => {
+        if (!window.confirm('ต้องการยกเลิกการนัดหมายนี้ใช่ไหม?')) return
+        setCancelling(bookingId)
+        const res = await cancelBooking(bookingId)
+        setCancelling(null)
+        if (res.success) {
+            setDbBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'ยกเลิก' } : b))
+        } else {
+            alert(res.message || 'ยกเลิกไม่สำเร็จ')
+        }
+    }
+
     const pendingHistory = dbBookings
-        .filter(b => !treatedBookingIds.has(b.id))
+        .filter(b => !treatedBookingIds.has(b.id) && b.status !== 'ยกเลิก')
         .map(b => ({
             id:     b.id,
             date:   thaiDate(b.booking_date),
@@ -47,6 +60,7 @@ function PatientHistory () {
             diagnosis: null,
             status: b.status,
             isNew:  b.status !== 'เสร็จสิ้น',
+            canCancel: b.status === 'รอตรวจ',
         }))
 
     const completedHistory = Medicalhistory.map(h => ({
@@ -84,6 +98,20 @@ function PatientHistory () {
                 <p className='tl-meta'>{history.doctor}</p>
                 {history.diagnosis && (
                 <p className='tl-diagnosis'>วินิจฉัย: {history.diagnosis}</p>
+                )}
+                {history.canCancel && (
+                <button
+                    onClick={() => handleCancel(history.id)}
+                    disabled={cancelling === history.id}
+                    style={{
+                        marginTop: '6px', padding: '3px 10px',
+                        background: 'transparent', border: '0.5px solid #e57373',
+                        borderRadius: '6px', color: '#e57373',
+                        fontSize: '11px', cursor: 'pointer',
+                    }}
+                >
+                    {cancelling === history.id ? 'กำลังยกเลิก...' : 'ยกเลิกนัด'}
+                </button>
                 )}
             </div>
         </div>

@@ -53,6 +53,11 @@ export const getBookings = async (patientId) => {
   return res.json()
 }
 
+export const cancelBooking = async (bookingId) => {
+  const res = await fetch(`${BASE_URL}/bookings/${bookingId}/cancel`, { method: 'PATCH' })
+  return res.json()
+}
+
 // Doctor Portal
 export const doctorLogin = async (employeeId, password) => {
   const res = await fetch(`${BASE_URL}/auth/doctor-login`, {
@@ -60,6 +65,11 @@ export const doctorLogin = async (employeeId, password) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ employeeId, password })
   })
+  return res.json()
+}
+
+export const getDoctorStats = async (doctorId) => {
+  const res = await fetch(`${BASE_URL}/doctor-portal/${doctorId}/stats`)
   return res.json()
 }
 
@@ -82,6 +92,26 @@ export const saveMedicalHistory = async (data) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
+  })
+  return res.json()
+}
+
+// Patient profile update
+export const updatePatientProfile = async (patientId, data) => {
+  const res = await fetch(`${BASE_URL}/patients/${patientId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}
+
+// Doctor password change
+export const changeDoctorPassword = async (doctorId, currentPassword, newPassword) => {
+  const res = await fetch(`${BASE_URL}/doctor-portal/${doctorId}/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
   })
   return res.json()
 }

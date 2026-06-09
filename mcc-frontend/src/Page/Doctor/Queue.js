@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../Context/AuthContext'
 import { getDoctorQueue, updateBookingStatus } from '../../api'
 import DoctorSidebar from './DoctorSidebar'
+import './Doctor.css'
 
 const STATUS_COLOR = {
   'รอตรวจ':     { bg: '#3d2a0d', color: '#f0a500' },
@@ -72,7 +73,7 @@ function DoctorQueue() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#121212' }}>
       <DoctorSidebar />
 
-      <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+      <div className="doctor-main-content">
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
@@ -110,14 +111,14 @@ function DoctorQueue() {
         </div>
 
         {/* Summary cards */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+        <div className="queue-summary-cards">
           {[
             { label: 'รอตรวจ',     count: counts['รอตรวจ'],     ...STATUS_COLOR['รอตรวจ'] },
             { label: 'กำลังตรวจ', count: counts['กำลังตรวจ'], ...STATUS_COLOR['กำลังตรวจ'] },
             { label: 'เสร็จสิ้น',  count: counts['เสร็จสิ้น'],  ...STATUS_COLOR['เสร็จสิ้น'] },
           ].map(s => (
             <div key={s.label} style={{
-              flex: 1, background: s.bg, border: `1px solid ${s.color}22`,
+              background: s.bg, border: `1px solid ${s.color}22`,
               borderRadius: '10px', padding: '14px 18px',
             }}>
               <p style={{ color: s.color, fontSize: '24px', fontWeight: '700', margin: 0 }}>{s.count}</p>
@@ -141,11 +142,7 @@ function DoctorQueue() {
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               placeholder='ค้นหาชื่อ / HN / อาการ...'
-              style={{
-                background: '#252525', border: '1px solid #333',
-                borderRadius: '8px', color: 'white', padding: '7px 12px',
-                fontSize: '12px', width: '220px',
-              }}
+              className="queue-search-input"
             />
           </div>
 
@@ -156,7 +153,8 @@ function DoctorQueue() {
               {queue.length === 0 ? 'ไม่มีคิว' : 'ไม่พบผลการค้นหา'}
             </p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="doctor-table-wrap">
+            <table style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #2a2a2a' }}>
                   {['คิว', 'เวลา', 'ชื่อผู้ป่วย', 'HN', 'อาการ', 'สถานะ', 'จัดการ'].map(h => (
@@ -196,7 +194,7 @@ function DoctorQueue() {
                           {q.status === 'กำลังตรวจ' && (
                             <button
                               onClick={() => navigate(`/doctor/patient/${q.patient_id}?bookingId=${q.id}`, {
-                                state: { patientName: q.patient_name, patientHn: q.hn },
+                                state: { patientName: q.patient_name, patientHn: q.hn, symptom: q.symptom },
                               })}
                               style={{ padding: '5px 10px', background: '#0d3d2a', border: '1px solid #1D9E75', borderRadius: '6px', color: '#1D9E75', fontSize: '11px', cursor: 'pointer' }}
                             >
@@ -213,6 +211,7 @@ function DoctorQueue() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

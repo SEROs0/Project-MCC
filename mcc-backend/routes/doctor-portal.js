@@ -2,6 +2,41 @@ const express = require('express')
 const router  = express.Router()
 const db      = require('../db')
 
+// สถิติรายเดือน + 7 วันล่าสุด
+router.get('/:doctorId/stats', async (req, res) => {
+  const { doctorId } = req.params
+  try {
+    const [[monthRow]] = await db.query(
+      `SELECT
+         COUNT(*) AS total,
+         SUM(status = 'เสร็จสิ้น') AS done,
+         SUM(status = 'ยกเลิก')    AS cancelled
+       FROM bookings
+       WHERE doctor_id = ?
+         AND YEAR(booking_date)  = YEAR(CURDATE())
+         AND MONTH(booking_date) = MONTH(CURDATE())`,
+      [doctorId]
+    )
+
+    const [weekRows] = await db.query(
+      `SELECT booking_date,
+              COUNT(*) AS total,
+              SUM(status = 'เสร็จสิ้น') AS done,
+              SUM(status = 'ยกเลิก')    AS cancelled
+       FROM bookings
+       WHERE doctor_id = ?
+         AND booking_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()
+       GROUP BY booking_date
+       ORDER BY booking_date ASC`,
+      [doctorId]
+    )
+
+    res.json({ month: monthRow, week: weekRows })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 // คิววันนี้ของแพทย์
 router.get('/:doctorId/queue', async (req, res) => {
   const date = req.query.date || new Date().toISOString().split('T')[0]
@@ -86,6 +121,25 @@ router.post('/medical-history', async (req, res) => {
     )
 
     res.json({ success: true, historyId })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// F5: เปลี่ยน password หมอ
+router.patch('/:doctorId/password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  if (!newPassword || newPassword.length < 4)
+    return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร' })
+  try {
+    const [rows] = await db.query(
+      'SELECT id FROM doctors WHERE id = ? AND password = ?',
+      [req.params.doctorId, currentPassword]
+    )
+    if (rows.length === 0)
+      return res.status(400).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' })
+    await db.query('UPDATE doctors SET password = ? WHERE id = ?', [newPassword, req.params.doctorId])
+    res.json({ success: true })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
