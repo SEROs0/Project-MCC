@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate, useLocation } from 'react-rout
 import { useAuth } from '../Context/AuthContext'
 import { getPatientHistory, saveMedicalHistory, getPatientByHn } from '../../api'
 import DoctorSidebar from './DoctorSidebar'
+import './Doctor.css'
 
 function PatientDetail() {
   const { patientId }         = useParams()
@@ -13,6 +14,7 @@ function PatientDetail() {
   const location              = useLocation()
   const patientName           = location.state?.patientName || `ผู้ป่วย #${patientId}`
   const patientHn             = location.state?.patientHn   || '-'
+  const symptom               = location.state?.symptom     || '-'
 
   const [history, setHistory]       = useState([])
   const [patientInfo, setPatientInfo] = useState(null)
@@ -88,7 +90,7 @@ function PatientDetail() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#121212' }}>
       <DoctorSidebar />
 
-      <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+      <div className="doctor-main-content">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
           <button onClick={() => navigate('/doctor/queue')}
             style={{ background: 'transparent', border: '1px solid #333', borderRadius: '8px', color: '#888', padding: '6px 12px', cursor: 'pointer', fontSize: '12px' }}>
@@ -96,11 +98,19 @@ function PatientDetail() {
           </button>
           <div>
             <h1 style={{ color: 'white', fontSize: '20px', margin: 0 }}>{patientName}</h1>
-            <p style={{ color: '#555', fontSize: '12px', margin: '2px 0 0' }}>HN: {patientHn} &nbsp;·&nbsp; คิว #{bookingId}</p>
+            <p style={{ color: '#555', fontSize: '12px', margin: '2px 0 0' }}>
+              HN: {patientHn} &nbsp;·&nbsp; คิว #{bookingId}
+            </p>
+            {symptom && symptom !== '-' && (
+              <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#1e2a1e', border: '0.5px solid #1D9E75', borderRadius: '6px', padding: '3px 10px' }}>
+                <span style={{ color: '#888', fontSize: '11px' }}>อาการที่แจ้ง:</span>
+                <span style={{ color: '#1D9E75', fontSize: '11px', fontWeight: 500 }}>{symptom}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="doctor-split-grid">
 
           {/* ซ้าย — ประวัติเดิม + vitals */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -109,7 +119,7 @@ function PatientDetail() {
             {patientInfo && (
               <div style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '20px' }}>
                 <h3 style={{ color: 'white', fontSize: '14px', margin: '0 0 14px' }}>ข้อมูลสุขภาพปัจจุบัน</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+                <div className="vitals-grid-3" style={{ marginBottom: '12px' }}>
                   {[
                     { label: 'ความดัน',  value: patientInfo.blood_pressure },
                     { label: 'ชีพจร',    value: patientInfo.pulse ? `${patientInfo.pulse} bpm` : null },
@@ -184,7 +194,7 @@ function PatientDetail() {
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ color: '#888', fontSize: '12px' }}>สัญญาณชีพ</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '6px' }}>
+              <div className="vitals-grid-3" style={{ marginTop: '6px' }}>
                 <div>
                   <p style={{ color: '#555', fontSize: '10px', margin: '0 0 4px' }}>ความดัน (mmHg)</p>
                   <input

@@ -68,9 +68,9 @@ function NotificationPage() {
     const timers = []
 
     bookings.forEach(b => {
-      if (!b.time) return
+      if (!b.time || !b.rawDate) return
       const [h, m] = b.time.split(':').map(Number)
-      const apptTime = new Date()
+      const apptTime = new Date(b.rawDate + 'T12:00:00')
       apptTime.setHours(h, m, 0, 0)
 
       if (toggles.remind2hr) {
@@ -240,24 +240,49 @@ function NotificationPage() {
             {/* นัดที่กำลังจะมาถึง */}
             <div className='notif-card'>
               <div className='notif-card-title'>นัดที่กำลังจะมาถึง</div>
-              {bookings.filter(b => b.status !== 'เสร็จสิ้น').length === 0 ? (
-                <p style={{ color: '#555', fontSize: '13px' }}>ไม่มีนัดหมายที่กำลังจะมาถึง</p>
-              ) : (
-                bookings.filter(b => b.status !== 'เสร็จสิ้น').map((b, i) => (
-                  <div key={b.id ?? i} className='appt-item'>
-                    <div className='appt-time-block'>
-                      <p className='appt-time-main'>{b.time}</p>
-                      <p className='appt-time-date'>วันนี้</p>
+              {(() => {
+                const todayIso = new Date().toISOString().split('T')[0]
+                const nowMin   = new Date().getHours() * 60 + new Date().getMinutes()
+                const active   = bookings.filter(b => b.status !== 'เสร็จสิ้น' && b.status !== 'ยกเลิก')
+                if (active.length === 0)
+                  return <p style={{ color: '#555', fontSize: '13px' }}>ไม่มีนัดหมายที่กำลังจะมาถึง</p>
+                return active.map((b, i) => {
+                  const slotMin = b.time
+                    ? Number(b.time.split(':')[0]) * 60 + Number(b.time.split(':')[1])
+                    : null
+                  const isPastDue =
+                    (b.rawDate && b.rawDate < todayIso) ||
+                    (b.rawDate === todayIso && slotMin !== null && nowMin >= slotMin + 30)
+
+                  return (
+                    <div key={b.id ?? i} className='appt-item'
+                      style={ isPastDue ? { opacity: 0.75 } : undefined }
+                    >
+                      <div className='appt-time-block'>
+                        <p className='appt-time-main'>{b.time}</p>
+                        <p className='appt-time-date'>{b.date}</p>
+                      </div>
+                      <div className='appt-divider' />
+                      <div className='appt-info'>
+                        <p className='appt-name'>{b.symptoms || 'นัดหมาย'}</p>
+                        <p className='appt-detail'>{b.doctor}</p>
+                      </div>
+                      {isPastDue ? (
+                        <span style={{
+                          background: '#3d1a0d', color: '#e57373',
+                          border: '0.5px solid #e5737366',
+                          padding: '2px 8px', borderRadius: '20px',
+                          fontSize: '10px', whiteSpace: 'nowrap',
+                        }}>
+                          ไม่ได้มาตามนัดหมอ
+                        </span>
+                      ) : (
+                        <span className='badge badge-green'>ยืนยัน</span>
+                      )}
                     </div>
-                    <div className='appt-divider' />
-                    <div className='appt-info'>
-                      <p className='appt-name'>{b.symptoms || 'นัดหมาย'}</p>
-                      <p className='appt-detail'>{b.doctor}</p>
-                    </div>
-                    <span className='badge badge-green'>ยืนยัน</span>
-                  </div>
-                ))
-              )}
+                  )
+                })
+              })()}
             </div>
 
             {/* ตั้งค่าการแจ้งเตือน */}

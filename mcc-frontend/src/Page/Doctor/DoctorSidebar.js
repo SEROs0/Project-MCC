@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../Context/AuthContext'
 import { Heart } from 'lucide-react'
+import { IconLayoutDashboard, IconListNumbers, IconLogout, IconUser } from '@tabler/icons-react'
 
 function DoctorSidebar() {
   const navigate  = useNavigate()
@@ -10,7 +11,9 @@ function DoctorSidebar() {
   const isActive = (path) => location.pathname === path
 
   const menuItems = [
-    { path: '/doctor/queue', icon: 'ti-list-numbers', label: 'คิววันนี้' },
+    { path: '/doctor/dashboard', Icon: IconLayoutDashboard, label: 'ภาพรวม' },
+    { path: '/doctor/queue',     Icon: IconListNumbers,     label: 'คิววันนี้' },
+    { path: '/doctor/profile',   Icon: IconUser,            label: 'โปรไฟล์' },
   ]
 
   const initials = currentDoctor?.name ? currentDoctor.name.slice(0, 2) : 'หม'
@@ -32,7 +35,7 @@ function DoctorSidebar() {
           className={`sidebar-btn ${isActive(item.path) ? 'active' : ''}`}
           onClick={() => navigate(item.path)}
         >
-          <i className={`ti ${item.icon} btn-icon`} aria-hidden='true' />
+          <item.Icon size={16} className='btn-icon' />
           <span className='btn-label'>{item.label}</span>
         </button>
       ))}
@@ -52,12 +55,12 @@ function DoctorSidebar() {
             background: 'transparent', border: '0.5px solid #333',
             borderRadius: '8px', color: '#888', fontSize: '12px',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: '6px', transition: 'all 0.15s'
+            justifyContent: 'center', gap: '6px', transition: 'all 0.15s',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = '#3d0d0d'; e.currentTarget.style.color = '#e57373'; e.currentTarget.style.borderColor = '#e57373' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#888'; e.currentTarget.style.borderColor = '#333' }}
         >
-          <i className='ti ti-logout' />
+          <IconLogout size={15} />
           <span className='btn-label'>ออกจากระบบ</span>
         </button>
       </div>

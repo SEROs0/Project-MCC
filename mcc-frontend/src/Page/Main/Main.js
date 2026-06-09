@@ -1,9 +1,6 @@
 import './Main.css';
-import App from '../App.js'
-import { Calendar, LayoutDashboard, ClipboardList, Bell, User, Heart, AlignCenter } from 'lucide-react';
-import {doctors, patients, notifications,timeslots } from '../../Mock/data.js'
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate ,BrowserRouter, Routes, Route, Navigate, data} from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import Sidebar from '../sidebar.js'
 import { useAuth } from '../Context/AuthContext.js';
 import { getDoctors,createBooking,gettimeSlots,getSlotBookings } from '../../api.js';
@@ -22,96 +19,89 @@ function MainPage() {
     
     const { currentUser, addBooking } = useAuth()
     
-    const [doctorList, setDoctorList] = useState([])
-    const [selectedId, setSelectedId] = useState(null)
+    const todayIso = new Date().toISOString().split('T')[0]
+
+    const [doctorList, setDoctorList]     = useState([])
+    const [selectedId, setSelectedId]     = useState(null)
     const [selectedTime, setSelectedTime] = useState(null)
-    const [showModal, setShowModal] = useState(false)
-    const [bookingData, setBookingData] = useState(null)
-    const [selectedSlotId ,setSelectedSlotId] = useState(null)
+    const [selectedSlotId, setSelectedSlotId] = useState(null)
+    const [selectedDate, setSelectedDate] = useState(todayIso)
     const [slotBookings, setSlotBookings] = useState({})
     const [timeSlotsList, setTimeSlotsList] = useState([])
-    
+    const [showModal, setShowModal]       = useState(false)
+    const [bookingData, setBookingData]   = useState(null)
+
     const [form, setForm] = useState({
-        name:     currentUser?.name ?? '',
-        phone:    currentUser?.phone ?? '',
-        age:      currentUser?.age ?? '',
-        sex:      currentUser?.sex ?? '',
-        symptom:  '',
-        note:     '',
+        name:    currentUser?.name  ?? '',
+        phone:   currentUser?.phone ?? '',
+        age:     currentUser?.age   ?? '',
+        sex:     currentUser?.sex   ?? '',
+        symptom: '',
+        note:    '',
     })
-    
-    
+
+    // โหลดหมอ + time slots ครั้งเดียว
     useEffect(() => {
-        const fetchDoctors = async () => {
-            const data = await getDoctors()
-            setDoctorList(data)
-        }
-        const fetchTimeSlot = async () => {
-            const data = await gettimeSlots()
-            setTimeSlotsList(data)
-        }
-        const fetchSlotBookings = async () => {
-            const date = new Date().toISOString().split('T')[0]
-            const data = await getSlotBookings(date)
+        getDoctors().then(data => setDoctorList(Array.isArray(data) ? data : []))
+        gettimeSlots().then(data => setTimeSlotsList(Array.isArray(data) ? data : []))
+    }, [])
+
+    // โหลด slot bookings ทุกครั้งที่วันเปลี่ยน
+    useEffect(() => {
+        setSelectedTime(null)
+        setSelectedSlotId(null)
+        setSelectedId(null)
+        getSlotBookings(selectedDate).then(data => {
             const map = {}
-            data.forEach(row => {
+            if (Array.isArray(data)) data.forEach(row => {
                 map[`${row.doctor_id}_${row.slot_time_id}`] = row.booked_count
             })
             setSlotBookings(map)
-        }
-        fetchDoctors()
-        fetchTimeSlot()
-        fetchSlotBookings()
-    }, [])
+        })
+    }, [selectedDate])
 
     if (!currentUser) return <Navigate to="/login"/>
 
 
-    const today = new Date()
+    const isToday = selectedDate === todayIso
     const now = new Date()
     const currentHour   = now.getHours()
     const currentMinute = now.getMinutes()
-    const CAPACITY = 5
 
-
-    // เช็คว่า slot นั้นเต็มไหม (key คือ doctorId_slotTimeId)
+    // เช็คว่า slot นั้นเต็มไหม
     const isSlotFull = (doctorId, slotId) => {
+        const doctor = doctorList.find(d => d.id === doctorId)
+        const capacity = doctor?.capacity ?? 5
         const key = `${doctorId}_${slotId}`
-        return (slotBookings[key] ?? 0) >= CAPACITY
+        return (slotBookings[key] ?? 0) >= capacity
     }
 
     // คิวที่เหลือของแพทย์ในเวลาที่เลือก
     const getRemainingSlot = (doctorId) => {
-        if (!selectedSlotId) return CAPACITY
+        const doctor = doctorList.find(d => d.id === doctorId)
+        const capacity = doctor?.capacity ?? 5
+        if (!selectedSlotId) return capacity
         const key = `${doctorId}_${selectedSlotId}`
-        return CAPACITY - (slotBookings[key] ?? 0)
+        return capacity - (slotBookings[key] ?? 0)
     }
-
 
     // แปลง timeSlots เป็น object พร้อม available
     const slots = timeSlotsList.map(slot => {
         const time = slot?.slot_time || ''
-        
-        const [slotHour, slotMinute] = time.includes(':')
-            ? time.split(':').map(Number) : [0,0]
-
-        // slot หมดเวลาเมื่อเวลาปัจจุบันเลยเวลาสิ้นสุด slot (เริ่ม + 30 นาที)
-        const slotTotalMinutes = slotHour * 60 + slotMinute
+        const [slotHour, slotMinute] = time.includes(':') ? time.split(':').map(Number) : [0, 0]
+        // เช็ค isPast เฉพาะวันนี้ — วันอื่นทุก slot ที่ is_active ถือว่าว่าง
+        const slotTotalMinutes    = slotHour * 60 + slotMinute
         const currentTotalMinutes = currentHour * 60 + currentMinute
-        const isPast = currentTotalMinutes >= slotTotalMinutes + 30
-
+        const isPast = isToday && currentTotalMinutes >= slotTotalMinutes + 30
         return {
-            id: slot?.id,
-            time: time ? time.substring(0,5) : '--:--',
-            available: time ? (!isPast && slot.is_active === 1 ) : false  // ← ผ่านไปแล้ว = ไม่ว่าง
+            id:        slot?.id,
+            time:      time ? time.substring(0, 5) : '--:--',
+            available: time ? (!isPast && slot.is_active === 1) : false,
         }
     })
 
-    const dateText = today.toLocaleDateString('th-TH',{
-        weekday: 'long',   
-        day:     'numeric', 
-        month:   'long',   
-        year:    'numeric' 
+    const dateText = new Date(selectedDate + 'T12:00:00').toLocaleDateString('th-TH', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     })
     
 
@@ -155,7 +145,7 @@ function MainPage() {
         patientId:   currentUser.id,
         doctorId:    selectedId,
         slotTimeId:  selectedSlotId,
-        bookingDate: new Date().toISOString().split('T')[0],
+        bookingDate: selectedDate,
         symptom:     form.symptom,
         note:        form.note
     })
@@ -168,9 +158,10 @@ function MainPage() {
             time:   selectedTime,
         })
         addBooking({
-            doctor: doctorList.find(d => d.id === selectedId)?.name,
-            time:   selectedTime,
-            patient: { symptom: form.symptom, note: form.note }
+            doctor:      doctorList.find(d => d.id === selectedId)?.name,
+            time:        selectedTime,
+            bookingDate: selectedDate,
+            patient:     { symptom: form.symptom, note: form.note },
         })
         setShowModal(true)
     } else {
@@ -184,9 +175,33 @@ function MainPage() {
                 <Sidebar />
 
                 <div className='main-content'>
-                    <div className='headertext'>
-                    <h1>จองนัดหมาย</h1>
-                    <p>เลือกแพทย์ วัน-เวลา และกรอกข้อมูลเพื่อจองคิว</p>
+                    <div className='headertext' style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                            <h1>จองนัดหมาย</h1>
+                            <p>เลือกแพทย์ วัน-เวลา และกรอกข้อมูลเพื่อจองคิว</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <label style={{ color: '#666', fontSize: '12px' }}>เลือกวันนัด:</label>
+                            <input
+                                type='date'
+                                value={selectedDate}
+                                min={todayIso}
+                                onChange={e => setSelectedDate(e.target.value)}
+                                style={{
+                                    background: '#1e1e1e', border: '1px solid #2a2a2a',
+                                    borderRadius: '8px', color: 'white',
+                                    padding: '7px 10px', fontSize: '13px', cursor: 'pointer',
+                                }}
+                            />
+                            {!isToday && (
+                                <button
+                                    onClick={() => setSelectedDate(todayIso)}
+                                    style={{ padding: '7px 10px', background: 'transparent', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#666', fontSize: '12px', cursor: 'pointer' }}
+                                >
+                                    วันนี้
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className='book_an_appointment'>
@@ -271,7 +286,7 @@ function MainPage() {
                                         {doctor.name}
                                     </p>
                                     <p style={{ fontSize:'12px', color:'#555', margin:'2px 0 6px', textAlign: 'center'}}>
-                                        {doctor.dept}
+                                        {doctor.dept_name}
                                     </p>
                                     {selectedTime && (
                                     <p style={{ fontSize:'12px', color: isFull ? '#e57373' : '#1D9E75', textAlign: 'center' }}>
@@ -293,7 +308,7 @@ function MainPage() {
                         <div style={{ padding: '5px' }}>
                             <label>ชื่อ-นามสกุล</label><br />
                             <input type="text"
-                            value={currentUser?.name}
+                            value={form.name}
                             onChange={e => {
                                 const val = e.target.value.replace(/[^ก-๙a-zA-Z\s]/g, '')
                                 if (val.length <= 50) handleChange('name', val)
@@ -305,7 +320,7 @@ function MainPage() {
                         <div style={{ padding: '5px' }}>
                             <label>หมายเลขโทรศัพท์</label><br />
                             <input type="text"
-                            value={currentUser?.phone}
+                            value={form.phone}
                             onChange={e => {
                                 const val = e.target.value.replace(/[^0-9-]/g, '')
                                 if (val.length <= 12) handleChange('phone', val)
@@ -319,7 +334,7 @@ function MainPage() {
                         <div className='input-detail'>
                         <div style={{ padding: '5px' }}>
                             <label>อายุ</label><br />
-                            <select value={currentUser?.age}
+                            <select value={form.age}
                             onChange={e => handleChange('age', e.target.value)}
                             style={{ border: '1px solid #333', borderRadius: '8px', padding: '8px', background: '#1e1e1e', width: '100%' }}
                             >
@@ -331,7 +346,7 @@ function MainPage() {
                         </div>
                         <div style={{ padding: '5px' }}>
                             <label>เพศ</label><br />
-                            <select value={currentUser?.sex}
+                            <select value={form.sex}
                             onChange={e => handleChange('sex', e.target.value)}
                             style={{ border: '1px solid #333', borderRadius: '8px', padding: '8px', background: '#1e1e1e', width: '100%' }}
                             >
@@ -433,7 +448,10 @@ function MainPage() {
                         background: '#252525', borderRadius: '10px',
                         padding: '14px', margin: '0 0 16px', textAlign: 'left'
                     }}>
-                        <p style={{ color: '#888', fontSize: '12px', marginBottom: '8px' }}>
+                        <p style={{ color: '#888', fontSize: '12px', marginBottom: '6px' }}>
+                        📅 วันที่: <span style={{ color: 'white' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        </p>
+                        <p style={{ color: '#888', fontSize: '12px', marginBottom: '6px' }}>
                         🩺 แพทย์: <span style={{ color: 'white' }}>{bookingData.doctor}</span>
                         </p>
                         <p style={{ color: '#888', fontSize: '12px' }}>

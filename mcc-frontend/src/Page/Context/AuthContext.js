@@ -4,8 +4,9 @@ import { getBookings } from '../../api'
 const AuthContext = createContext()
 
 const mapDbBooking = (b) => ({
-  id:              new Date(b.created_at).getTime() || b.id,
-  date:            new Date(b.booking_date).toLocaleDateString('th-TH', {
+  id:              b.id,
+  rawDate:         b.booking_date,
+  date:            new Date(b.booking_date + 'T12:00:00').toLocaleDateString('th-TH', {
                      day: 'numeric', month: 'long', year: 'numeric'
                    }),
   doctor:          b.doctor_name,
@@ -57,9 +58,11 @@ export function AuthProvider({ children }) {
   }
 
   const addBooking = (bookingData) => {
+    const dateRaw = bookingData.bookingDate || new Date().toISOString().split('T')[0]
     const newBooking = {
       id:              Date.now(),
-      date:            new Date().toLocaleDateString('th-TH', {
+      rawDate:         dateRaw,
+      date:            new Date(dateRaw + 'T12:00:00').toLocaleDateString('th-TH', {
                          day: 'numeric', month: 'long', year: 'numeric'
                        }),
       doctor:          bookingData.doctor,

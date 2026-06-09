@@ -1,0 +1,112 @@
+/* Doctor portal — shared responsive layout */
+
+.doctor-main-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* Dashboard: 4-col */
+.doctor-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Queue summary: 3-col */
+.queue-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* PatientDetail: 2-col side-by-side panels */
+.doctor-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Table: horizontal scroll on small screens */
+.doctor-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.doctor-table-wrap table {
+  min-width: 620px;
+  width: 100%;
+}
+
+/* Vitals display/input: 3-col */
+.vitals-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* Queue search input */
+.queue-search-input {
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: white;
+  padding: 7px 12px;
+  font-size: 12px;
+  width: 220px;
+  outline: none;
+}
+
+.queue-search-input::placeholder {
+  color: #555;
+}
+
+/* Monthly stats: 3-col */
+.doctor-monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* ── Responsive ───────────────────────────────── */
+
+/* ≤900px: stack PatientDetail panels */
+@media (max-width: 900px) {
+  .doctor-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ≤768px: sidebar collapses to 60px, reduce padding */
+@media (max-width: 768px) {
+  .doctor-main-content {
+    padding: 16px 14px;
+  }
+
+  .doctor-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .vitals-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .queue-search-input {
+    width: 100%;
+  }
+}
+
+/* ≤500px: queue summary stacks to 1-col */
+@media (max-width: 500px) {
+  .queue-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-monthly-grid {
+    grid-template-columns: 1fr;
+  }
+}
