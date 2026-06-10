@@ -50,11 +50,17 @@ export function AuthProvider({ children }) {
     fetchBookings()
   }, [currentUser])
 
+  const loginUser = (patient, token) => {
+    localStorage.setItem('authToken', token)
+    setCurrentUser(patient)
+  }
+
   const logout = () => {
     setCurrentUser(null)
     setBookings([])
     localStorage.removeItem('currentUser')
     localStorage.removeItem('bookings')
+    localStorage.removeItem('authToken')
   }
 
   const addBooking = (bookingData) => {
@@ -90,13 +96,19 @@ export function AuthProvider({ children }) {
     }
   }, [currentDoctor])
 
+  const loginDoctor = (doctor, token) => {
+    localStorage.setItem('authToken', token)
+    setCurrentDoctor(doctor)
+  }
+
   const doctorLogout = () => {
     setCurrentDoctor(null)
     localStorage.removeItem('currentDoctor')
+    localStorage.removeItem('authToken')
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, logout, addBooking, bookings, currentDoctor, setCurrentDoctor, doctorLogout }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, loginUser, logout, addBooking, bookings, currentDoctor, setCurrentDoctor, loginDoctor, doctorLogout }}>
       {children}
     </AuthContext.Provider>
   )

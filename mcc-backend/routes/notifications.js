@@ -3,6 +3,9 @@ const router  = express.Router()
 const db      = require('../db')
 
 router.get('/:patientId', async (req, res) => {
+  if (req.user.id !== parseInt(req.params.patientId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึงการแจ้งเตือนของผู้ป่วยคนอื่น' })
+  }
   try {
     const [rows] = await db.query(
       'SELECT * FROM notifications WHERE patient_id = ? ORDER BY created_at DESC',

@@ -1,9 +1,13 @@
 const express = require('express')
 const router  = express.Router()
 const db      = require('../db')
+const bcrypt  = require('bcryptjs')
 
 // สถิติรายเดือน + 7 วันล่าสุด
 router.get('/:doctorId/stats', async (req, res) => {
+  if (req.user.id !== parseInt(req.params.doctorId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึงข้อมูลของแพทย์คนอื่น' })
+  }
   const { doctorId } = req.params
   try {
     const [[monthRow]] = await db.query(
@@ -39,6 +43,9 @@ router.get('/:doctorId/stats', async (req, res) => {
 
 // คิววันนี้ของแพทย์
 router.get('/:doctorId/queue', async (req, res) => {
+  if (req.user.id !== parseInt(req.params.doctorId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึงข้อมูลของแพทย์คนอื่น' })
+  }
   const date = req.query.date || new Date().toISOString().split('T')[0]
   try {
     const [rows] = await db.query(
@@ -74,11 +81,23 @@ router.patch('/bookings/:bookingId/status', async (req, res) => {
   }
 })
 
-// บันทึกผลการรักษา (วินิจฉัย + ยา + นัดติดตาม + vitals)
+// บันทึกผลการรักษา — doctorId มาจาก token, ตรวจว่า booking เป็นของหมอคนนี้
 router.post('/medical-history', async (req, res) => {
-  const { patientId, doctorId, bookingId, diagnosis, symptoms, nextAppointment, medicines,
+  const { patientId, bookingId, diagnosis, symptoms, nextAppointment, medicines,
           bloodPressure, pulse, temperature, weight, height } = req.body
+  const doctorId = req.user.id
   try {
+    if (bookingId) {
+      const [brows] = await db.query(
+        'SELECT doctor_id, patient_id FROM bookings WHERE id = ?', [bookingId]
+      )
+      if (brows.length === 0 || brows[0].doctor_id !== doctorId) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์บันทึกการรักษาสำหรับการจองนี้' })
+      }
+      if (brows[0].patient_id !== parseInt(patientId)) {
+        return res.status(400).json({ message: 'ข้อมูล patientId ไม่ตรงกับการจอง' })
+      }
+    }
     const visitDate = new Date().toISOString().split('T')[0]
     const [result] = await db.query(
       `INSERT INTO medical_history (patient_id, doctor_id, booking_id, visit_date, diagnosis, symptoms, next_appointment)
@@ -126,19 +145,29 @@ router.post('/medical-history', async (req, res) => {
   }
 })
 
-// F5: เปลี่ยน password หมอ
+// เปลี่ยน password หมอ — ต้องเป็นเจ้าของ account เท่านั้น
 router.patch('/:doctorId/password', async (req, res) => {
+  if (req.user.id !== parseInt(req.params.doctorId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์เปลี่ยนรหัสผ่านของแพทย์คนอื่น' })
+  }
   const { currentPassword, newPassword } = req.body
-  if (!newPassword || newPassword.length < 4)
-    return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวอักษร' })
+  if (!newPassword || newPassword.length < 6)
+    return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' })
   try {
-    const [rows] = await db.query(
-      'SELECT id FROM doctors WHERE id = ? AND password = ?',
-      [req.params.doctorId, currentPassword]
-    )
-    if (rows.length === 0)
-      return res.status(400).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' })
-    await db.query('UPDATE doctors SET password = ? WHERE id = ?', [newPassword, req.params.doctorId])
+    const [rows] = await db.query('SELECT password FROM doctors WHERE id = ?', [req.params.doctorId])
+    if (rows.length === 0) return res.status(404).json({ message: 'ไม่พบแพทย์' })
+
+    const stored = rows[0].password
+    let match = false
+    if (stored.startsWith('$2')) {
+      match = await bcrypt.compare(currentPassword, stored)
+    } else {
+      match = currentPassword === stored
+    }
+    if (!match) return res.status(400).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' })
+
+    const hashed = await bcrypt.hash(newPassword, 10)
+    await db.query('UPDATE doctors SET password = ? WHERE id = ?', [hashed, req.params.doctorId])
     res.json({ success: true })
   } catch (err) {
     res.status(500).json({ message: err.message })

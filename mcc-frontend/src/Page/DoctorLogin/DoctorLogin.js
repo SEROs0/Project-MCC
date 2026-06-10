@@ -10,7 +10,7 @@ function DoctorLogin() {
   const [error, setError]           = useState('')
   const [loading, setLoading]       = useState(false)
 
-  const { setCurrentDoctor } = useAuth()
+  const { loginDoctor } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -24,7 +24,7 @@ function DoctorLogin() {
     const data = await doctorLogin(employeeId.trim(), password)
     setLoading(false)
     if (data.success) {
-      setCurrentDoctor(data.doctor)
+      loginDoctor(data.doctor, data.token)
       navigate('/doctor/dashboard')
     } else {
       setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
