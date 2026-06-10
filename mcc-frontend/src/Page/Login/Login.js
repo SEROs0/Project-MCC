@@ -5,21 +5,26 @@ import { login } from '../../api.js'
 import { Heart } from 'lucide-react'
 
 function LoginPage() {
-  const [hn, setHn]         = useState('')
-  const [error, setError]   = useState('')
+  const [hn, setHn]           = useState('')
+  const [password, setPassword] = useState('')
+  const [needPw, setNeedPw]   = useState(false)
+  const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
-  const { setCurrentUser }  = useAuth()
-  const navigate            = useNavigate()
+  const { loginUser }  = useAuth()
+  const navigate       = useNavigate()
 
   const handleLogin = async () => {
     if (!hn.trim()) { setError('กรุณากรอก HN'); return }
     setLoading(true)
     setError('')
     try {
-      const data = await login(hn.trim())
+      const data = await login(hn.trim(), password || undefined)
       if (data.success) {
-        setCurrentUser(data.patient)
+        loginUser(data.patient, data.token)
         navigate('/main')
+      } else if (data.needPassword) {
+        setNeedPw(true)
+        setError('กรุณากรอกรหัสผ่านของคุณ')
       } else {
         setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ')
       }
@@ -50,7 +55,7 @@ function LoginPage() {
         <label style={{ color: '#888', fontSize: '12px' }}>หมายเลข HN</label>
         <input
           value={hn}
-          onChange={e => setHn(e.target.value)}
+          onChange={e => { setHn(e.target.value); setNeedPw(false) }}
           onKeyDown={e => { if (e.key === 'Enter' && !loading) handleLogin() }}
           placeholder="เช่น 2026-00182"
           autoFocus
@@ -61,6 +66,26 @@ function LoginPage() {
             outline: 'none', boxSizing: 'border-box',
           }}
         />
+
+        {needPw && (
+          <div style={{ marginTop: '12px' }}>
+            <label style={{ color: '#888', fontSize: '12px' }}>รหัสผ่าน</label>
+            <input
+              type='password'
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !loading) handleLogin() }}
+              placeholder='••••••'
+              autoFocus
+              style={{
+                width: '100%', marginTop: '6px', padding: '10px 12px',
+                borderRadius: '8px', border: '1px solid #1D9E75',
+                background: '#252525', color: 'white', fontSize: '14px',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        )}
 
         {error && <p style={{ color: '#e57373', fontSize: '12px', marginTop: '8px' }}>{error}</p>}
 

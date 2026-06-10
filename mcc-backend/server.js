@@ -4,20 +4,28 @@ require('dotenv').config()
 
 require('./cron')
 
+const { requirePatient, requireDoctor, requireAuth } = require('./middleware/auth')
+
 const app = express()
 
 // Middleware
 app.use(cors({ origin: 'http://localhost:3000' }))
 app.use(express.json())
 
-// Routes
-app.use('/api/auth',          require('./routes/auth'))
-app.use('/api/patients',      require('./routes/patients'))
-app.use('/api/doctors',       require('./routes/doctors'))
-app.use('/api/bookings',      require('./routes/bookings'))
-app.use('/api/notifications', require('./routes/notifications'))
-app.use('/api/timeslots',     require('./routes/timeslots'))
-app.use('/api/doctor-portal', require('./routes/doctor-portal'))
+// Routes — public
+app.use('/api/auth',      require('./routes/auth'))
+app.use('/api/doctors',   require('./routes/doctors'))
+app.use('/api/timeslots', require('./routes/timeslots'))
+
+// Routes — mixed auth (สมัครสมาชิก/slot ดูได้ public, อื่นๆ ต้องการ token)
+app.use('/api/bookings', require('./routes/bookings'))
+
+// Routes — patient หรือ doctor token (doctor เข้าได้ข้อมูลทุกคน, patient เข้าได้เฉพาะของตัวเอง)
+app.use('/api/patients',      requireAuth, require('./routes/patients'))
+app.use('/api/notifications', requirePatient, require('./routes/notifications'))
+
+// Routes — doctor token required
+app.use('/api/doctor-portal', requireDoctor, require('./routes/doctor-portal'))
 
 // รัน server
 const PORT = process.env.PORT || 8080

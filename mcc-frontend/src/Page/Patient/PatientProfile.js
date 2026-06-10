@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../Context/AuthContext'
-import { updatePatientProfile } from '../../api'
+import { updatePatientProfile, changePatientPassword } from '../../api'
 import Sidebar from '../sidebar'
 
 const Field = ({ label, children }) => (
@@ -32,6 +32,37 @@ function PatientProfile() {
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
   const [error, setError]     = useState('')
+
+  const [pwForm, setPwForm]   = useState({ current: '', newPw: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwSaved, setPwSaved]   = useState(false)
+  const [pwError, setPwError]   = useState('')
+
+  const handlePwChange = (field, val) => {
+    setPwForm(prev => ({ ...prev, [field]: val }))
+    setPwSaved(false)
+    setPwError('')
+  }
+
+  const handlePwSave = async () => {
+    if (pwForm.newPw.length < 6) { setPwError('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'); return }
+    if (pwForm.newPw !== pwForm.confirm) { setPwError('รหัสผ่านใหม่ไม่ตรงกัน'); return }
+    setPwSaving(true)
+    setPwError('')
+    try {
+      const res = await changePatientPassword(currentUser.id, pwForm.current || undefined, pwForm.newPw)
+      if (res.success) {
+        setPwSaved(true)
+        setPwForm({ current: '', newPw: '', confirm: '' })
+      } else {
+        setPwError(res.message || 'เปลี่ยนรหัสผ่านไม่สำเร็จ')
+      }
+    } catch {
+      setPwError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
+    } finally {
+      setPwSaving(false)
+    }
+  }
 
   const handleChange = (field, val) => {
     setForm(prev => ({ ...prev, [field]: val }))
@@ -165,6 +196,53 @@ function PatientProfile() {
               }}
             >
               {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+            </button>
+          </div>
+
+          {/* ตั้ง/เปลี่ยนรหัสผ่าน */}
+          <div style={{ background: '#1e1e1e', border: '0.5px solid #2a2a2a', borderRadius: '12px', padding: '20px' }}>
+            <h3 style={{ color: 'white', fontSize: '13px', fontWeight: '600', margin: '0 0 16px', paddingBottom: '10px', borderBottom: '0.5px solid #2a2a2a' }}>
+              รหัสผ่านสำหรับเข้าสู่ระบบ
+            </h3>
+            <p style={{ color: '#555', fontSize: '12px', marginBottom: '14px' }}>
+              ตั้งรหัสผ่านเพื่อเพิ่มความปลอดภัยในการเข้าสู่ระบบด้วย HN ของคุณ
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { field: 'current', label: 'รหัสผ่านปัจจุบัน', placeholder: 'เว้นว่างถ้ายังไม่เคยตั้ง' },
+                { field: 'newPw',   label: 'รหัสผ่านใหม่',    placeholder: 'อย่างน้อย 6 ตัวอักษร' },
+                { field: 'confirm', label: 'ยืนยันรหัสผ่านใหม่', placeholder: '••••••' },
+              ].map(({ field, label, placeholder }) => (
+                <div key={field}>
+                  <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '5px' }}>{label}</label>
+                  <input
+                    type='password'
+                    value={pwForm[field]}
+                    onChange={e => handlePwChange(field, e.target.value)}
+                    placeholder={placeholder}
+                    onKeyDown={e => { if (e.key === 'Enter' && !pwSaving) handlePwSave() }}
+                    style={{ width: '100%', padding: '9px 12px', background: '#252525', border: '1px solid #333', borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {pwError && <p style={{ color: '#e57373', fontSize: '12px', marginTop: '10px' }}>{pwError}</p>}
+            {pwSaved && <p style={{ color: '#1D9E75', fontSize: '12px', marginTop: '10px' }}>✓ เปลี่ยนรหัสผ่านเรียบร้อยแล้ว</p>}
+
+            <button
+              onClick={handlePwSave}
+              disabled={pwSaving}
+              style={{
+                marginTop: '14px', padding: '10px 24px',
+                background: pwSaving ? '#0a5c43' : '#1D9E75',
+                border: 'none', borderRadius: '8px', color: 'white',
+                fontSize: '13px', fontWeight: '500',
+                cursor: pwSaving ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {pwSaving ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่าน'}
             </button>
           </div>
 

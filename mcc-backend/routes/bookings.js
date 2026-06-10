@@ -1,9 +1,13 @@
-const express = require('express')
-const router  = express.Router()
-const db      = require('../db')
+const express        = require('express')
+const router         = express.Router()
+const db             = require('../db')
+const { requirePatient } = require('../middleware/auth')
 
-router.post('/', async (req, res) => {
+router.post('/', requirePatient, async (req, res) => {
   const { patientId, doctorId, slotTimeId, bookingDate, symptom, note } = req.body
+  if (req.user.id !== parseInt(patientId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์จองคิวแทนผู้ป่วยคนอื่น' })
+  }
   try {
     const [doctor]   = await db.query('SELECT * FROM doctors WHERE id = ?', [doctorId])
     const [slotRows] = await db.query(
@@ -58,7 +62,10 @@ router.get('/slots', async (req, res) => {
   }
 })
 
-router.get('/patient/:patientId', async (req, res) => {
+router.get('/patient/:patientId', requirePatient, async (req, res) => {
+  if (req.user.id !== parseInt(req.params.patientId)) {
+    return res.status(403).json({ message: 'ไม่มีสิทธิ์เข้าถึงข้อมูลผู้ป่วยคนอื่น' })
+  }
   try {
     const [rows] = await db.query(
       `SELECT b.*, d.name as doctor_name, t.slot_time
@@ -75,10 +82,11 @@ router.get('/patient/:patientId', async (req, res) => {
   }
 })
 
-router.patch('/:id/cancel', async (req, res) => {
+router.patch('/:id/cancel', requirePatient, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM bookings WHERE id = ?', [req.params.id])
     if (rows.length === 0) return res.status(404).json({ message: 'ไม่พบการจอง' })
+    if (rows[0].patient_id !== req.user.id) return res.status(403).json({ message: 'ไม่มีสิทธิ์ยกเลิกคิวของผู้ป่วยคนอื่น' })
     if (rows[0].status !== 'รอตรวจ') return res.status(400).json({ message: 'ยกเลิกได้เฉพาะคิวที่ยังรอตรวจเท่านั้น' })
 
     await db.query("UPDATE bookings SET status = 'ยกเลิก' WHERE id = ?", [req.params.id])
